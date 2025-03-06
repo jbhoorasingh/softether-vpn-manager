@@ -34,7 +34,11 @@
               <button class="icon-button" title="Edit Hub">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="icon-button" title="Delete Hub">
+              <button 
+                class="icon-button" 
+                title="Delete Hub"
+                @click="confirmDeleteHub(hub.HubName_str)"
+              >
                 <i class="fas fa-trash"></i>
               </button>
             </div>
@@ -185,6 +189,21 @@ const refreshData = async () => {
     console.error('Error refreshing hubs:', error)
   } finally {
     isLoading.value = false
+  }
+}
+
+const confirmDeleteHub = async (hubName) => {
+  if (!confirm(`Are you sure you want to delete the hub "${hubName}"? This action cannot be undone.`)) {
+    return
+  }
+
+  try {
+    const result = await auth.deleteHub(hubName)
+    if (result.success) {
+      refreshData() // Refresh the hub list after successful deletion
+    }
+  } catch (error) {
+    console.error('Error deleting hub:', error)
   }
 }
 

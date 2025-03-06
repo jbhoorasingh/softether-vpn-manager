@@ -118,6 +118,14 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
+  const deleteHub = async (hubName) => {
+    const result = await api.deleteHub(hubName)
+    if (!result.success) {
+      error.value = result.error
+    }
+    return result
+  }
+
   return {
     // State
     isAuthenticated,
@@ -138,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     clearError,
     refreshHubs,
-    createHub
+    createHub,
+    deleteHub
   }
 }) 

@@ -118,4 +118,25 @@ export class VPNApi {
       }
     }
   }
+
+  async deleteHub(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      console.log('Deleting hub:', hubName)
+      const result = await this.makeRequest('DeleteHub', params)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error deleting hub:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
