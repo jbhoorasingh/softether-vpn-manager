@@ -49,8 +49,8 @@
                 </span>
               </div>
               <div class="stat-item">
-                <span class="label">Sessions</span>
-                <span class="value">{{ hub.NumSessions_u32 }}</span>
+                <span class="label">Hub Type</span>
+                <span class="value">{{ getHubType(hub.HubType_u32) }}</span>
               </div>
             </div>
             
@@ -60,23 +60,85 @@
                 <span class="value">{{ hub.NumUsers_u32 }}</span>
               </div>
               <div class="stat-item">
+                <span class="label">Groups</span>
+                <span class="value">{{ hub.NumGroups_u32 }}</span>
+              </div>
+            </div>
+
+            <div class="stat-row">
+              <div class="stat-item">
+                <span class="label">Sessions</span>
+                <span class="value">{{ hub.NumSessions_u32 }}</span>
+              </div>
+              <div class="stat-item">
                 <span class="label">Active Users</span>
                 <span class="value">{{ hub.NumLogin_u32 }}</span>
               </div>
             </div>
 
             <div class="stat-row">
+              <div class="stat-item">
+                <span class="label">MAC Table Entries</span>
+                <span class="value">{{ hub.NumMacTables_u32 }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="label">IP Table Entries</span>
+                <span class="value">{{ hub.NumIpTables_u32 }}</span>
+              </div>
+            </div>
+
+            <div class="stat-row">
               <div class="stat-item full-width">
-                <span class="label">Traffic</span>
+                <span class="label">Unicast Traffic</span>
                 <div class="traffic-stats">
                   <span class="traffic-item">
                     <i class="fas fa-arrow-down"></i>
                     {{ formatBytes(hub['Ex.Recv.UnicastBytes_u64']) }}
+                    ({{ hub['Ex.Recv.UnicastCount_u64'] }} packets)
                   </span>
                   <span class="traffic-item">
                     <i class="fas fa-arrow-up"></i>
                     {{ formatBytes(hub['Ex.Send.UnicastBytes_u64']) }}
+                    ({{ hub['Ex.Send.UnicastCount_u64'] }} packets)
                   </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-row">
+              <div class="stat-item full-width">
+                <span class="label">Broadcast Traffic</span>
+                <div class="traffic-stats">
+                  <span class="traffic-item">
+                    <i class="fas fa-arrow-down"></i>
+                    {{ formatBytes(hub['Ex.Recv.BroadcastBytes_u64']) }}
+                    ({{ hub['Ex.Recv.BroadcastCount_u64'] }} packets)
+                  </span>
+                  <span class="traffic-item">
+                    <i class="fas fa-arrow-up"></i>
+                    {{ formatBytes(hub['Ex.Send.BroadcastBytes_u64']) }}
+                    ({{ hub['Ex.Send.BroadcastCount_u64'] }} packets)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-row timestamps">
+              <div class="stat-item full-width">
+                <span class="label">Timestamps</span>
+                <div class="timestamp-list">
+                  <div class="timestamp-item">
+                    <span class="timestamp-label">Last Communication:</span>
+                    <span class="timestamp-value">{{ formatDate(hub.LastCommTime_dt) }}</span>
+                  </div>
+                  <div class="timestamp-item">
+                    <span class="timestamp-label">Last Login:</span>
+                    <span class="timestamp-value">{{ formatDate(hub.LastLoginTime_dt) }}</span>
+                  </div>
+                  <div class="timestamp-item">
+                    <span class="timestamp-label">Created:</span>
+                    <span class="timestamp-value">{{ formatDate(hub.CreatedTime_dt) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -114,6 +176,20 @@ const formatBytes = (bytes) => {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+}
+
+const getHubType = (type) => {
+  switch (type) {
+    case 0: return 'Stand-alone'
+    case 1: return 'Static'
+    case 2: return 'Dynamic'
+    default: return 'Unknown'
+  }
+}
+
+const formatDate = (date) => {
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleString()
 }
 
 onMounted(() => {
@@ -286,21 +362,43 @@ onMounted(() => {
   color: #48bb78;
 }
 
+.timestamps {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.timestamp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.timestamp-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.timestamp-label {
+  color: #718096;
+}
+
+.timestamp-value {
+  color: #2d3748;
+}
+
 .traffic-stats {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .traffic-item {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
   font-size: 0.875rem;
-}
-
-.traffic-item i {
-  color: #718096;
-  font-size: 0.75rem;
 }
 
 .empty-state {
