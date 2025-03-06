@@ -24,13 +24,13 @@
 
       <!-- Hub List -->
       <div class="hub-list" v-if="auth.hubs.length > 0">
-        <div v-for="hub in auth.hubs" :key="hub.HubName_str" class="hub-card">
+        <div v-for="hub in auth.hubs" :key="hub.HubName_str" class="hub-card" @click="$router.push(`/hubs/${hub.HubName_str}`)">
           <div class="hub-header">
             <div class="hub-title">
               <span class="status-dot" :class="{ 'online': hub.Online_bool }"></span>
               <h3>{{ hub.HubName_str }}</h3>
             </div>
-            <div class="hub-actions">
+            <div class="hub-actions" @click.stop>
               <button class="icon-button" title="Edit Hub">
                 <i class="fas fa-edit"></i>
               </button>
@@ -315,6 +315,13 @@ onMounted(() => {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .hub-header {

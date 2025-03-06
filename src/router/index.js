@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import Login from '../components/Login.vue'
 import '@fortawesome/fontawesome-free/css/all.css'
+import Hubs from '../views/Hubs.vue'
+import HubDetail from '../views/HubDetail.vue'
 
 const routes = [
   {
@@ -31,7 +33,13 @@ const routes = [
   {
     path: '/hubs',
     name: 'Hubs',
-    component: () => import('../views/Hubs.vue'),
+    component: Hubs,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/hubs/:hubName',
+    name: 'HubDetail',
+    component: HubDetail,
     meta: { requiresAuth: true }
   },
   {

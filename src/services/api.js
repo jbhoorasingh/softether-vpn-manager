@@ -139,4 +139,44 @@ export class VPNApi {
       }
     }
   }
+
+  async getHubUsers(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      const result = await this.makeRequest('EnumUser', params)
+      return {
+        success: true,
+        users: result.result.UserList
+      }
+    } catch (error) {
+      console.error('Error fetching hub users:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async getHubSessions(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      const result = await this.makeRequest('EnumSession', params)
+      return {
+        success: true,
+        sessions: result.result.SessionList
+      }
+    } catch (error) {
+      console.error('Error fetching hub sessions:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 

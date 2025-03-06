@@ -126,6 +126,22 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
+  const getHubUsers = async (hubName) => {
+    const result = await api.getHubUsers(hubName)
+    if (!result.success) {
+      error.value = result.error
+    }
+    return result
+  }
+
+  const getHubSessions = async (hubName) => {
+    const result = await api.getHubSessions(hubName)
+    if (!result.success) {
+      error.value = result.error
+    }
+    return result
+  }
+
   return {
     // State
     isAuthenticated,
@@ -147,6 +163,8 @@ export const useAuthStore = defineStore('auth', () => {
     clearError,
     refreshHubs,
     createHub,
-    deleteHub
+    deleteHub,
+    getHubUsers,
+    getHubSessions
   }
 }) 
