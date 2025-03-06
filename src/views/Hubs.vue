@@ -6,9 +6,9 @@
         <div class="actions">
           <button class="action-button refresh" @click="refreshData" :disabled="isLoading">
             <i class="fas fa-sync-alt" :class="{ 'rotating': isLoading }"></i>
-            Refresh
+            {{ isLoading ? 'Refreshing...' : 'Refresh' }}
           </button>
-          <button class="action-button primary">
+          <button class="action-button primary" @click="showNewHubModal = true">
             <i class="fas fa-plus"></i>
             New Hub
           </button>
@@ -154,20 +154,42 @@
       </div>
     </div>
   </AppLayout>
+  <NewHubModal 
+    v-model="showNewHubModal"
+    @hub-created="onHubCreated"
+  />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import AppLayout from '../components/AppLayout.vue'
+import NewHubModal from '../components/NewHubModal.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const isLoading = ref(false)
+const showNewHubModal = ref(false)
 
 const refreshData = async () => {
+  if (isLoading.value) return // Prevent multiple simultaneous refreshes
+  
   isLoading.value = true
-  await auth.refreshHubs()
-  isLoading.value = false
+  auth.clearError() // Clear any existing errors
+  
+  try {
+    const success = await auth.refreshHubs()
+    if (!success) {
+      console.error('Failed to refresh hubs')
+    }
+  } catch (error) {
+    console.error('Error refreshing hubs:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const onHubCreated = () => {
+  refreshData()
 }
 
 const formatBytes = (bytes) => {

@@ -89,4 +89,33 @@ export class VPNApi {
       }
     }
   }
+
+  async createHub(hubName, adminPassword, options = {}) {
+    try {
+      const params = {
+        HubName_str: hubName,
+        AdminPasswordPlainText_str: adminPassword,
+        Online_bool: Boolean(options.online ?? false),
+        MaxSession_u32: Number(options.maxSessions ?? 0),
+        NoEnum_bool: Boolean(options.noEnum ?? false)
+      }
+
+      console.log('Creating hub with params:', {
+        ...params,
+        AdminPasswordPlainText_str: '***' // Hide password in logs
+      })
+
+      const result = await this.makeRequest('CreateHub', params)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error creating hub:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 

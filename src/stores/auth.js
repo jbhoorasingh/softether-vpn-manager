@@ -76,9 +76,10 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const result = await api.login() // Reuse login method as it gets hub list
+      const result = await api.login()
       if (result.success) {
         hubList.value = result.hubs
+        error.value = null
         return true
       } else {
         error.value = result.error
@@ -109,6 +110,14 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
   }
 
+  const createHub = async ({ hubName, adminPassword, options }) => {
+    const result = await api.createHub(hubName, adminPassword, options)
+    if (!result.success) {
+      error.value = result.error
+    }
+    return result
+  }
+
   return {
     // State
     isAuthenticated,
@@ -128,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     clearError,
-    refreshHubs
+    refreshHubs,
+    createHub
   }
 }) 
