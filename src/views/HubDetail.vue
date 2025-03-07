@@ -122,6 +122,13 @@
         >
           Active Sessions
         </button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'securenet' }"
+          @click="activeTab = 'securenet'"
+        >
+          SecureNAT
+        </button>
       </div>
 
       <!-- Users Table -->
@@ -200,6 +207,129 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- SecureNAT Settings -->
+      <div v-if="activeTab === 'securenet'" class="table-container">
+        <div class="table-header">
+          <h2>SecureNAT Settings</h2>
+          <div class="header-actions">
+            <button 
+              class="action-button"
+              :class="{
+                'success': secureNatEnabled,
+                'primary': !secureNatEnabled
+              }"
+              @click="toggleSecureNAT"
+              :disabled="isLoading"
+            >
+              <i class="fas" :class="secureNatEnabled ? 'fa-check-circle' : 'fa-power-off'"></i>
+              SecureNAT is {{ secureNatEnabled ? 'Enabled' : 'Disabled' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="secure-nat-settings" v-if="secureNatEnabled">
+          <form @submit.prevent="saveSecureNATOptions" class="settings-form">
+            <!-- Virtual NAT Settings -->
+            <div class="settings-section">
+              <h3>Virtual NAT Settings</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Virtual IP Address</label>
+                  <input type="text" v-model="secureNatOptions.Ip_ip" placeholder="192.168.30.1">
+                </div>
+                <div class="form-group">
+                  <label>Subnet Mask</label>
+                  <input type="text" v-model="secureNatOptions.Mask_ip" placeholder="255.255.255.0">
+                </div>
+                <div class="form-group">
+                  <label>MTU Value</label>
+                  <input type="number" v-model.number="secureNatOptions.Mtu_u32" placeholder="1500">
+                </div>
+                <div class="form-group checkbox">
+                  <label>
+                    <input type="checkbox" v-model="secureNatOptions.UseNat_bool">
+                    Enable Virtual NAT
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- DHCP Server Settings -->
+            <div class="settings-section">
+              <h3>DHCP Server Settings</h3>
+              <div class="form-grid">
+                <div class="form-group checkbox">
+                  <label>
+                    <input type="checkbox" v-model="secureNatOptions.UseDhcp_bool">
+                    Enable DHCP Server
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>DHCP Lease Range Start</label>
+                  <input type="text" v-model="secureNatOptions.DhcpLeaseIPStart_ip" placeholder="192.168.30.10">
+                </div>
+                <div class="form-group">
+                  <label>DHCP Lease Range End</label>
+                  <input type="text" v-model="secureNatOptions.DhcpLeaseIPEnd_ip" placeholder="192.168.30.200">
+                </div>
+                <div class="form-group">
+                  <label>Subnet Mask</label>
+                  <input type="text" v-model="secureNatOptions.DhcpSubnetMask_ip" placeholder="255.255.255.0">
+                </div>
+                <div class="form-group">
+                  <label>Gateway Address</label>
+                  <input type="text" v-model="secureNatOptions.DhcpGatewayAddress_ip" placeholder="192.168.30.1">
+                </div>
+                <div class="form-group">
+                  <label>Primary DNS Server</label>
+                  <input type="text" v-model="secureNatOptions.DhcpDnsServerAddress_ip" placeholder="8.8.8.8">
+                </div>
+                <div class="form-group">
+                  <label>Secondary DNS Server</label>
+                  <input type="text" v-model="secureNatOptions.DhcpDnsServerAddress2_ip" placeholder="8.8.4.4">
+                </div>
+                <div class="form-group">
+                  <label>Domain Name</label>
+                  <input type="text" v-model="secureNatOptions.DhcpDomainName_str" placeholder="local">
+                </div>
+                <div class="form-group">
+                  <label>Lease Time (seconds)</label>
+                  <input type="number" v-model.number="secureNatOptions.DhcpExpireTimeSpan_u32" placeholder="7200">
+                </div>
+              </div>
+            </div>
+
+            <!-- Advanced Settings -->
+            <div class="settings-section">
+              <h3>Advanced Settings</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>NAT TCP Timeout (seconds)</label>
+                  <input type="number" v-model.number="secureNatOptions.NatTcpTimeout_u32" placeholder="1800">
+                </div>
+                <div class="form-group">
+                  <label>NAT UDP Timeout (seconds)</label>
+                  <input type="number" v-model.number="secureNatOptions.NatUdpTimeout_u32" placeholder="60">
+                </div>
+                <div class="form-group checkbox">
+                  <label>
+                    <input type="checkbox" v-model="secureNatOptions.SaveLog_bool">
+                    Save NAT Logs
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="action-button primary" :disabled="isLoading">
+                <i class="fas fa-save"></i>
+                Save Settings
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -296,6 +426,28 @@ const selectedItem = ref(null)
 
 const hubDetails = ref(null)
 
+const secureNatEnabled = ref(false)
+const secureNatOptions = ref({
+  Ip_ip: '192.168.30.1',
+  Mask_ip: '255.255.255.0',
+  UseNat_bool: true,
+  Mtu_u32: 1500,
+  NatTcpTimeout_u32: 1800,
+  NatUdpTimeout_u32: 60,
+  UseDhcp_bool: true,
+  DhcpLeaseIPStart_ip: '192.168.30.10',
+  DhcpLeaseIPEnd_ip: '192.168.30.200',
+  DhcpSubnetMask_ip: '255.255.255.0',
+  DhcpExpireTimeSpan_u32: 7200,
+  DhcpGatewayAddress_ip: '192.168.30.1',
+  DhcpDnsServerAddress_ip: '8.8.8.8',
+  DhcpDnsServerAddress2_ip: '8.8.4.4',
+  DhcpDomainName_str: 'local',
+  SaveLog_bool: false,
+  ApplyDhcpPushRoutes_bool: false,
+  DhcpPushRoutes_str: ''
+})
+
 const refreshData = async () => {
   if (isLoading.value) return
   
@@ -303,28 +455,22 @@ const refreshData = async () => {
   error.value = null
   
   try {
-    // Get hub details from the hubs list
     const currentHub = auth.hubs.find(h => h.HubName_str === hubName)
     if (currentHub) {
       hubDetails.value = currentHub
     }
 
-    const [usersResult, sessionsResult] = await Promise.all([
-      auth.getApi().getHubUsers(hubName),
-      auth.getApi().getHubSessions(hubName)
+    await Promise.all([
+      auth.getApi().getHubUsers(hubName).then(result => {
+        if (result.success) users.value = result.users
+        else error.value = result.error
+      }),
+      auth.getApi().getHubSessions(hubName).then(result => {
+        if (result.success) sessions.value = result.sessions
+        else if (!error.value) error.value = result.error
+      }),
+      refreshSecureNATStatus()
     ])
-
-    if (usersResult.success) {
-      users.value = usersResult.users
-    } else {
-      error.value = usersResult.error
-    }
-
-    if (sessionsResult.success) {
-      sessions.value = sessionsResult.sessions
-    } else if (!error.value) {
-      error.value = sessionsResult.error
-    }
   } catch (err) {
     error.value = err.message
   } finally {
@@ -357,6 +503,47 @@ const formatDate = (date) => {
 const getAuthType = (type) => {
   // Add auth type mapping if available
   return type.toString()
+}
+
+const refreshSecureNATStatus = async () => {
+  try {
+    const options = await auth.getApi().getSecureNATOptions(hubName)
+    if (options.success) {
+      secureNatOptions.value = options.options
+      secureNatEnabled.value = options.options.UseNat_bool || options.options.UseDhcp_bool
+    }
+  } catch (error) {
+    console.error('Error fetching SecureNAT status:', error)
+  }
+}
+
+const toggleSecureNAT = async () => {
+  try {
+    const result = await (secureNatEnabled.value
+      ? auth.getApi().disableSecureNAT(hubName)
+      : auth.getApi().enableSecureNAT(hubName))
+
+    if (result.success) {
+      secureNatEnabled.value = !secureNatEnabled.value
+      if (secureNatEnabled.value) {
+        await refreshSecureNATStatus()
+      }
+    }
+  } catch (error) {
+    console.error('Error toggling SecureNAT:', error)
+  }
+}
+
+const saveSecureNATOptions = async () => {
+  try {
+    const result = await auth.getApi().setSecureNATOptions(hubName, secureNatOptions.value)
+    if (result.success) {
+      // Show success message or notification
+      console.log('SecureNAT settings saved successfully')
+    }
+  } catch (error) {
+    console.error('Error saving SecureNAT options:', error)
+  }
 }
 
 onMounted(() => {
@@ -663,5 +850,87 @@ onMounted(() => {
 
 .timestamp-value {
   color: #2d3748;
+}
+
+.settings-form {
+  padding: 1.5rem;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section h3 {
+  font-size: 1.125rem;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.form-group.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.form-actions {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.action-button.primary {
+  background-color: #1a202c;
+  color: white;
+}
+
+.action-button i {
+  font-size: 1rem;
+}
+
+.action-button.success {
+  background-color: #48bb78;
+  color: white;
+  border: none;
+}
+
+.action-button.success:hover {
+  background-color: #38a169;
 }
 </style> 

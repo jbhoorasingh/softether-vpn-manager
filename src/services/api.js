@@ -179,4 +179,85 @@ export class VPNApi {
       }
     }
   }
+
+  async enableSecureNAT(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      const result = await this.makeRequest('EnableSecureNAT', params)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error enabling SecureNAT:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async disableSecureNAT(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      const result = await this.makeRequest('DisableSecureNAT', params)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error disabling SecureNAT:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async getSecureNATOptions(hubName) {
+    try {
+      const params = {
+        RpcHubName_str: hubName
+      }
+
+      const result = await this.makeRequest('GetSecureNATOption', params)
+      return {
+        success: true,
+        options: result.result
+      }
+    } catch (error) {
+      console.error('Error getting SecureNAT options:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async setSecureNATOptions(hubName, options) {
+    try {
+      const params = {
+        RpcHubName_str: hubName,
+        ...options
+      }
+
+      const result = await this.makeRequest('SetSecureNATOption', params)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error setting SecureNAT options:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
