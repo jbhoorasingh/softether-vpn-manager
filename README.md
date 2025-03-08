@@ -106,7 +106,19 @@ This project aims to be considered for integration into the official SoftEther V
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+
+### Why GPL?
+
+We chose the GPL license because:
+1. It ensures that the software remains free and open source
+2. It protects users' freedom to run, copy, distribute, study, change and improve the software
+3. It requires that any modifications or derived works also remain open source
+4. It aligns with the spirit of community-driven development
+
+### Contributing
+
+By contributing to this project, you agree to license your contributions under the GNU GPL v3.0.
 
 ## Support
 
