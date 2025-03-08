@@ -260,4 +260,109 @@ export class VPNApi {
       }
     }
   }
+
+  // Listener Management Methods
+  async getSpecialListener() {
+    try {
+      const result = await this.makeRequest('GetSpecialListener')
+      return {
+        success: true,
+        settings: result.result
+      }
+    } catch (error) {
+      console.error('Error getting special listener:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async setSpecialListener(settings) {
+    try {
+      const result = await this.makeRequest('SetSpecialListener', settings)
+      return {
+        success: true,
+        settings: result.result
+      }
+    } catch (error) {
+      console.error('Error setting special listener:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async enumListener() {
+    try {
+      const result = await this.makeRequest('EnumListener')
+      return {
+        success: true,
+        listeners: result.result.ListenerList
+      }
+    } catch (error) {
+      console.error('Error enumerating listeners:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async createListener(port, enable = false) {
+    try {
+      const result = await this.makeRequest('CreateListener', {
+        Port_u32: port,
+        Enable_bool: enable
+      })
+      return {
+        success: true,
+        listener: result.result
+      }
+    } catch (error) {
+      console.error('Error creating listener:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async deleteListener(port) {
+    try {
+      const result = await this.makeRequest('DeleteListener', {
+        Port_u32: port
+      })
+      return {
+        success: true,
+        listener: result.result
+      }
+    } catch (error) {
+      console.error('Error deleting listener:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async enableListener(port, enable) {
+    try {
+      const result = await this.makeRequest('EnableListener', {
+        Port_u32: port,
+        Enable_bool: enable
+      })
+      return {
+        success: true,
+        listener: result.result
+      }
+    } catch (error) {
+      console.error('Error enabling/disabling listener:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
