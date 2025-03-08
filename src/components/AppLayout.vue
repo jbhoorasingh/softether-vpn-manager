@@ -23,6 +23,10 @@
           <i class="fas fa-cog"></i>
           <span>Settings</span>
         </router-link>
+        <router-link to="/capabilities" class="nav-link" active-class="active">
+          <i class="fas fa-microchip"></i>
+          <span>Capabilities</span>
+        </router-link>
       </div>
     </nav>
 

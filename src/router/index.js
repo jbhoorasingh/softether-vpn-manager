@@ -4,6 +4,8 @@ import Login from '../components/Login.vue'
 import '@fortawesome/fontawesome-free/css/all.css'
 import Hubs from '../views/Hubs.vue'
 import HubDetail from '../views/HubDetail.vue'
+import Settings from '../views/Settings.vue'
+import Capabilities from '../views/Capabilities.vue'
 
 const routes = [
   {
@@ -51,7 +53,13 @@ const routes = [
   {
     path: '/settings',
     name: 'Settings',
-    component: () => import('../views/Settings.vue'),
+    component: Settings,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/capabilities',
+    name: 'Capabilities',
+    component: Capabilities,
     meta: { requiresAuth: true }
   },
   {

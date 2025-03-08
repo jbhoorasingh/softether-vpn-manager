@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AppLayout from '../components/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 
@@ -132,6 +132,7 @@ const auth = useAuthStore()
 const isLoading = ref(false)
 const error = ref(null)
 const showNewListenerModal = ref(false)
+const showAllCapabilities = ref(false)
 
 const specialListeners = ref({
   VpnOverIcmpListener_bool: false,
@@ -139,11 +140,34 @@ const specialListeners = ref({
 })
 
 const listeners = ref([])
+const capabilities = ref([])
 
 const newListener = ref({
   port: null,
   enabled: false
 })
+
+// Show only important capabilities by default
+const displayedCapabilities = computed(() => {
+  if (showAllCapabilities.value) {
+    return capabilities.value
+  }
+  // Show only enabled capabilities in compact view
+  return capabilities.value.filter(cap => cap.CapsValue_u32 > 0)
+})
+
+const toggleCapabilitiesView = () => {
+  showAllCapabilities.value = !showAllCapabilities.value
+}
+
+const formatCapabilityName = (name) => {
+  // Remove common prefixes and format the name
+  return name
+    .replace(/_str$/, '')
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
 
 const refreshData = async () => {
   if (isLoading.value) return
@@ -152,6 +176,14 @@ const refreshData = async () => {
   error.value = null
   
   try {
+    // Get server capabilities
+    const capsResult = await auth.getApi().getServerCapabilities()
+    if (capsResult.success) {
+      capabilities.value = capsResult.capabilities
+    } else {
+      error.value = capsResult.error
+    }
+
     // Get special listeners
     const specialResult = await auth.getApi().getSpecialListener()
     if (specialResult.success) {
@@ -495,5 +527,63 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.capability-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.capability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.capability-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.capability-value {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.capability-value.enabled {
+  background-color: #9ae6b4;
+  color: #22543d;
+}
+
+.capability-description {
+  font-size: 0.875rem;
+  color: #718096;
+  margin: 0.5rem 0;
+}
+
+.capability-details {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: #4a5568;
 }
 </style> 

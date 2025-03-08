@@ -365,4 +365,20 @@ export class VPNApi {
       }
     }
   }
+
+  async getServerCapabilities() {
+    try {
+      const result = await this.makeRequest('GetCaps')
+      return {
+        success: true,
+        capabilities: result.result.CapsList
+      }
+    } catch (error) {
+      console.error('Error getting server capabilities:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
