@@ -6,6 +6,7 @@ import Hubs from '../views/Hubs.vue'
 import HubDetail from '../views/HubDetail.vue'
 import Settings from '../views/Settings.vue'
 import Capabilities from '../views/Capabilities.vue'
+import Logs from '../views/Logs.vue'
 
 const routes = [
   {
@@ -60,6 +61,12 @@ const routes = [
     path: '/capabilities',
     name: 'Capabilities',
     component: Capabilities,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/logs',
+    name: 'Logs',
+    component: Logs,
     meta: { requiresAuth: true }
   },
   {

@@ -381,4 +381,47 @@ export class VPNApi {
       }
     }
   }
+
+  async getLogFiles() {
+    try {
+      const result = await this.makeRequest('EnumLogFile')
+      return {
+        success: true,
+        logs: result.result.LogFiles
+      }
+    } catch (error) {
+      console.error('Error getting log files:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async readLogFile(filePath, offset = 0) {
+    try {
+      const result = await this.makeRequest('ReadLogFile', {
+        FilePath_str: filePath,
+        Offset_u32: offset
+      })
+      
+      // Decode the Base64 buffer to text
+      const buffer = result.result.Buffer_bin
+      const text = atob(buffer)
+      
+      return {
+        success: true,
+        serverName: result.result.ServerName_str,
+        filePath: result.result.FilePath_str,
+        offset: result.result.Offset_u32,
+        content: text
+      }
+    } catch (error) {
+      console.error('Error reading log file:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 

@@ -19,6 +19,10 @@
           <i class="fas fa-users"></i>
           <span>Users</span>
         </router-link>
+        <router-link to="/logs" class="nav-link" active-class="active">
+          <i class="fas fa-file-alt"></i>
+          <span>Logs</span>
+        </router-link>
         <router-link to="/settings" class="nav-link" active-class="active">
           <i class="fas fa-cog"></i>
           <span>Settings</span>
