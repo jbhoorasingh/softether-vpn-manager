@@ -20,19 +20,19 @@ A modern web interface for managing SoftEther VPN servers, built with Vue.js and
 Here are some screenshots of the VPN Manager interface:
 
 ### Dashboard
-![Dashboard](/docs/screenshot/dashboard.png)
+![Dashboard](/docs/screenshots/ss-dashboard.png)
 
 ### Virtual Hubs
-![Virtual Hubs](/docs/screenshot/virtual-hubs.png)
+![Virtual Hubs](/docs/screenshots/ss-virtual-hubs.png)
 
 ### Server Capabilities
-![Server Capabilities](/docs/screenshot/capabilities.png)
+![Server Capabilities](/docs/screenshots/ss-server-capabilities.png)
 
 ### Settings
-![Settings](/docs/screenshot/settings.png)
+![Settings](/docs/screenshots/ss-settings.png)
 
 ### Logs
-![Logs](/docs/screenshot/logs.png)
+![Logs](/docs/screenshots/ss-logs.png)
 
 ## Prerequisites
 
