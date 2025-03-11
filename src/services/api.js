@@ -200,6 +200,32 @@ export class VPNApi {
     }
   }
 
+  /**
+   * Enumerate NAT sessions for a Virtual Hub
+   * @param {string} hubName - Target Virtual HUB name
+   * @returns {Promise<Object>} Result object with success status and NAT sessions
+   */
+  async enumNAT(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      const result = await this.makeRequest('EnumNAT', params)
+      return {
+        success: true,
+        sessions: result.result.NatTable,
+        count: result.result.NumItem_u32
+      }
+    } catch (error) {
+      console.error('Error fetching NAT sessions:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
   async enableSecureNAT(hubName) {
     try {
       const params = {

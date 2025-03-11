@@ -138,6 +138,14 @@
         </button>
         <button 
           class="tab-button" 
+          :class="{ active: activeTab === 'nat' }"
+          @click="activeTab = 'nat'"
+          v-if="secureNatEnabled && secureNatOptions.UseNat_bool"
+        >
+          NAT Sessions
+        </button>
+        <button 
+          class="tab-button" 
           :class="{ active: activeTab === 'dhcp' }"
           @click="activeTab = 'dhcp'"
           v-if="secureNatEnabled && secureNatOptions.UseDhcp_bool"
@@ -415,6 +423,59 @@
           </tbody>
         </table>
       </div>
+
+      <!-- NAT Sessions Table -->
+      <div v-if="activeTab === 'nat'" class="table-container">
+        <div class="table-header">
+          <h2>NAT Sessions</h2>
+          <button class="action-button refresh" @click="refreshNATSessions" :disabled="isLoading">
+            <i class="fas fa-sync-alt" :class="{ 'rotating': isLoading }"></i>
+            Refresh Sessions
+          </button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th v-if="natColumns.includes('id')">ID</th>
+              <th v-if="natColumns.includes('protocol')">Protocol</th>
+              <th v-if="natColumns.includes('source')">Source</th>
+              <th v-if="natColumns.includes('destination')">Destination</th>
+              <th v-if="natColumns.includes('created')">Created</th>
+              <th v-if="natColumns.includes('lastComm')">Last Activity</th>
+              <th v-if="natColumns.includes('traffic')">Traffic</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="session in natSessions" :key="session.Id_u32">
+              <td v-if="natColumns.includes('id')">{{ session.Id_u32 }}</td>
+              <td v-if="natColumns.includes('protocol')">{{ getProtocolName(session.Protocol_u32) }}</td>
+              <td v-if="natColumns.includes('source')">{{ session.SrcIp_ip }}:{{ session.SrcPort_u32 }}</td>
+              <td v-if="natColumns.includes('destination')">{{ session.DestIp_ip }}:{{ session.DestPort_u32 }}</td>
+              <td v-if="natColumns.includes('created')">{{ formatDate(session.CreatedTime_dt) }}</td>
+              <td v-if="natColumns.includes('lastComm')">{{ formatDate(session.LastCommTime_dt) }}</td>
+              <td v-if="natColumns.includes('traffic')">
+                <div class="traffic-stats">
+                  <span class="traffic-item">
+                    <i class="fas fa-arrow-up"></i> {{ formatBytes(session.SendSize_u64) }}
+                  </span>
+                  <span class="traffic-item">
+                    <i class="fas fa-arrow-down"></i> {{ formatBytes(session.RecvSize_u64) }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <button class="icon-button" @click="showNATSessionDetails(session)">
+                  <i class="fas fa-info-circle"></i>
+                </button>
+              </td>
+            </tr>
+            <tr v-if="natSessions.length === 0">
+              <td :colspan="getColspan(natColumns.length)" class="empty-state">No active NAT sessions</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Column Selector Modal -->
@@ -435,11 +496,21 @@
               {{ col.label }}
             </label>
           </template>
-          <template v-else>
+          <template v-else-if="activeTab === 'sessions'">
             <label v-for="col in availableSessionColumns" :key="col.value" class="column-option">
               <input 
                 type="checkbox" 
                 v-model="sessionColumns" 
+                :value="col.value"
+              >
+              {{ col.label }}
+            </label>
+          </template>
+          <template v-else-if="activeTab === 'nat'">
+            <label v-for="col in availableNatColumns" :key="col.value" class="column-option">
+              <input 
+                type="checkbox" 
+                v-model="natColumns" 
                 :value="col.value"
               >
               {{ col.label }}
@@ -485,6 +556,7 @@ const sessions = ref([])
 const showColumnSelector = ref(false)
 const userColumns = ref(['name', 'group', 'realname', 'numLogin', 'lastLogin'])
 const sessionColumns = ref(['username', 'ip', 'hostname', 'remote'])
+const natColumns = ref(['id', 'protocol', 'source', 'destination', 'created', 'lastComm', 'traffic'])
 
 const availableUserColumns = [
   { value: 'name', label: 'Name' },
@@ -504,6 +576,16 @@ const availableSessionColumns = [
   { value: 'remoteHost', label: 'Remote Host' }
 ]
 
+const availableNatColumns = [
+  { value: 'id', label: 'ID' },
+  { value: 'protocol', label: 'Protocol' },
+  { value: 'source', label: 'Source' },
+  { value: 'destination', label: 'Destination' },
+  { value: 'created', label: 'Created' },
+  { value: 'lastComm', label: 'Last Activity' },
+  { value: 'traffic', label: 'Traffic' }
+]
+
 // Details modal
 const showDetailsModal = ref(false)
 const detailsTitle = ref('')
@@ -512,6 +594,7 @@ const selectedItem = ref(null)
 const hubDetails = ref(null)
 const secureNatEnabled = ref(false)
 const dhcpLeases = ref([])
+const natSessions = ref([])
 
 const secureNatOptions = ref({
   Ip_ip: '192.168.30.1',
@@ -556,8 +639,15 @@ const refreshData = async () => {
         else if (!error.value) error.value = result.error
       }),
       refreshSecureNATStatus().then(() => {
-        if (secureNatEnabled.value && secureNatOptions.value.UseDhcp_bool && activeTab.value === 'dhcp') {
-          return refreshDHCPLeases()
+        if (secureNatEnabled.value) {
+          const promises = []
+          if (secureNatOptions.value.UseDhcp_bool && activeTab.value === 'dhcp') {
+            promises.push(refreshDHCPLeases())
+          }
+          if (secureNatOptions.value.UseNat_bool && activeTab.value === 'nat') {
+            promises.push(refreshNATSessions())
+          }
+          return Promise.all(promises)
         }
       })
     ])
@@ -683,10 +773,57 @@ const showLeaseDetails = (lease) => {
   showDetailsModal.value = true
 }
 
-// Watch for tab changes to refresh DHCP leases when switching to DHCP tab
+const refreshNATSessions = async () => {
+  if (isLoading.value || !secureNatEnabled.value || !secureNatOptions.value.UseNat_bool) return
+  
+  try {
+    const result = await auth.getApi().enumNAT(hubName)
+    if (result.success) {
+      natSessions.value = result.sessions
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+const showNATSessionDetails = (session) => {
+  selectedItem.value = session
+  detailsTitle.value = `NAT Session Details: ${session.Id_u32}`
+  showDetailsModal.value = true
+}
+
+const getProtocolName = (protocol) => {
+  switch (protocol) {
+    case 0: return 'TCP'
+    case 1: return 'UDP'
+    case 2: return 'ICMP'
+    case 3: return 'DNS'
+    default: return `Unknown (${protocol})`
+  }
+}
+
+const formatBytes = (bytes) => {
+  if (bytes === 0) return '0 B'
+  
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  
+  return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const getColspan = (columnsLength) => {
+  // Add 1 for the actions column
+  return columnsLength + 1
+}
+
+// Watch for tab changes to refresh data when switching tabs
 watch(activeTab, (newTab) => {
   if (newTab === 'dhcp' && secureNatEnabled.value && secureNatOptions.value.UseDhcp_bool) {
     refreshDHCPLeases()
+  } else if (newTab === 'nat' && secureNatEnabled.value && secureNatOptions.value.UseNat_bool) {
+    refreshNATSessions()
   }
 })
 
@@ -1132,5 +1269,23 @@ onMounted(() => {
   text-align: center;
   color: #718096;
   padding: 2rem !important;
+}
+
+.traffic-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.traffic-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.traffic-item i {
+  font-size: 0.75rem;
+  color: #718096;
 }
 </style> 
