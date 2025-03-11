@@ -180,6 +180,26 @@ export class VPNApi {
     }
   }
 
+  async enumDHCP(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+
+      const result = await this.makeRequest('EnumDHCP', params)
+      return {
+        success: true,
+        leases: result.result.DhcpTable
+      }
+    } catch (error) {
+      console.error('Error fetching DHCP leases:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
   async enableSecureNAT(hubName) {
     try {
       const params = {

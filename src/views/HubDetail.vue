@@ -129,6 +129,14 @@
         >
           SecureNAT
         </button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'dhcp' }"
+          @click="activeTab = 'dhcp'"
+          v-if="secureNatEnabled && secureNatOptions.UseDhcp_bool"
+        >
+          DHCP Leases
+        </button>
       </div>
 
       <!-- Users Table -->
@@ -331,6 +339,46 @@
           </form>
         </div>
       </div>
+
+      <!-- DHCP Leases Table -->
+      <div v-if="activeTab === 'dhcp'" class="table-container">
+        <div class="table-header">
+          <h2>DHCP Leases</h2>
+          <button class="action-button refresh" @click="refreshDHCPLeases" :disabled="isLoading">
+            <i class="fas fa-sync-alt" :class="{ 'rotating': isLoading }"></i>
+            Refresh Leases
+          </button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>IP Address</th>
+              <th>Hostname</th>
+              <th>MAC Address</th>
+              <th>Leased Time</th>
+              <th>Expire Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="lease in dhcpLeases" :key="lease.Id_u32">
+              <td>{{ lease.IpAddress_ip }}</td>
+              <td>{{ lease.Hostname_str }}</td>
+              <td>{{ formatMacAddress(lease.MacAddress_bin) }}</td>
+              <td>{{ formatDate(lease.LeasedTime_dt) }}</td>
+              <td>{{ formatDate(lease.ExpireTime_dt) }}</td>
+              <td>
+                <button class="icon-button" @click="showLeaseDetails(lease)">
+                  <i class="fas fa-info-circle"></i>
+                </button>
+              </td>
+            </tr>
+            <tr v-if="dhcpLeases.length === 0">
+              <td colspan="6" class="empty-state">No active DHCP leases</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Column Selector Modal -->
@@ -381,7 +429,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppLayout from '../components/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
@@ -425,8 +473,9 @@ const detailsTitle = ref('')
 const selectedItem = ref(null)
 
 const hubDetails = ref(null)
-
 const secureNatEnabled = ref(false)
+const dhcpLeases = ref([])
+
 const secureNatOptions = ref({
   Ip_ip: '192.168.30.1',
   Mask_ip: '255.255.255.0',
@@ -469,7 +518,11 @@ const refreshData = async () => {
         if (result.success) sessions.value = result.sessions
         else if (!error.value) error.value = result.error
       }),
-      refreshSecureNATStatus()
+      refreshSecureNATStatus().then(() => {
+        if (secureNatEnabled.value && secureNatOptions.value.UseDhcp_bool && activeTab.value === 'dhcp') {
+          return refreshDHCPLeases()
+        }
+      })
     ])
   } catch (err) {
     error.value = err.message
@@ -545,6 +598,48 @@ const saveSecureNATOptions = async () => {
     console.error('Error saving SecureNAT options:', error)
   }
 }
+
+const refreshDHCPLeases = async () => {
+  if (isLoading.value || !secureNatEnabled.value || !secureNatOptions.value.UseDhcp_bool) return
+  
+  try {
+    const result = await auth.getApi().enumDHCP(hubName)
+    if (result.success) {
+      dhcpLeases.value = result.leases
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+const formatMacAddress = (base64Mac) => {
+  try {
+    // Decode base64 to bytes
+    const binary = atob(base64Mac)
+    // Convert to hex and format
+    return Array.from(binary)
+      .map(byte => byte.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join(':')
+      .toUpperCase()
+  } catch (error) {
+    return 'Invalid MAC'
+  }
+}
+
+const showLeaseDetails = (lease) => {
+  selectedItem.value = lease
+  detailsTitle.value = `DHCP Lease Details: ${lease.IpAddress_ip}`
+  showDetailsModal.value = true
+}
+
+// Watch for tab changes to refresh DHCP leases when switching to DHCP tab
+watch(activeTab, (newTab) => {
+  if (newTab === 'dhcp' && secureNatEnabled.value && secureNatOptions.value.UseDhcp_bool) {
+    refreshDHCPLeases()
+  }
+})
 
 onMounted(() => {
   refreshData()
@@ -932,5 +1027,33 @@ onMounted(() => {
 
 .action-button.success:hover {
   background-color: #38a169;
+}
+
+.dhcp-leases {
+  margin-top: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.dhcp-leases .table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dhcp-leases .table-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #2d3748;
+}
+
+.empty-state {
+  text-align: center;
+  color: #718096;
+  padding: 2rem !important;
 }
 </style> 
