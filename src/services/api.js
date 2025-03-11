@@ -240,6 +240,11 @@ export class VPNApi {
     }
   }
 
+  /**
+   * Get SecureNAT options for a Virtual Hub
+   * @param {string} hubName - Target Virtual HUB name
+   * @returns {Promise<Object>} Result object with success status and options
+   */
   async getSecureNATOptions(hubName) {
     try {
       const params = {
@@ -260,11 +265,105 @@ export class VPNApi {
     }
   }
 
+  /**
+   * Set SecureNAT options for a Virtual Hub
+   * @param {string} hubName - Target Virtual HUB name
+   * @param {Object} options - SecureNAT options
+   * @param {string} [options.MacAddress_bin] - MAC address (Base64 binary)
+   * @param {string} options.Ip_ip - IP address (e.g., "192.168.30.1")
+   * @param {string} options.Mask_ip - Subnet mask (e.g., "255.255.255.0")
+   * @param {boolean} options.UseNat_bool - Use Virtual NAT function
+   * @param {number} options.Mtu_u32 - MTU value (Standard: 1500)
+   * @param {number} options.NatTcpTimeout_u32 - NAT TCP timeout in seconds
+   * @param {number} options.NatUdpTimeout_u32 - NAT UDP timeout in seconds
+   * @param {boolean} options.UseDhcp_bool - Use DHCP function
+   * @param {string} options.DhcpLeaseIPStart_ip - Start IP for DHCP range
+   * @param {string} options.DhcpLeaseIPEnd_ip - End IP for DHCP range
+   * @param {string} options.DhcpSubnetMask_ip - DHCP subnet mask
+   * @param {number} options.DhcpExpireTimeSpan_u32 - DHCP lease expiration time in seconds
+   * @param {string} options.DhcpGatewayAddress_ip - Default gateway IP for DHCP clients
+   * @param {string} options.DhcpDnsServerAddress_ip - Primary DNS server IP
+   * @param {string} options.DhcpDnsServerAddress2_ip - Secondary DNS server IP
+   * @param {string} options.DhcpDomainName_str - Domain name for DHCP clients
+   * @param {boolean} options.SaveLog_bool - Save Virtual DHCP/NAT operations in logs
+   * @param {boolean} options.ApplyDhcpPushRoutes_bool - Enable DHCP push routes
+   * @param {string} options.DhcpPushRoutes_str - Static routing table to push (format: "network/mask/gateway,...")
+   * @returns {Promise<Object>} Result object with success status
+   */
   async setSecureNATOptions(hubName, options) {
     try {
+      // Define default values for all required parameters
+      const defaultOptions = {
+        MacAddress_bin: '', // Base64 encoded MAC address
+        Ip_ip: '192.168.30.1',
+        Mask_ip: '255.255.255.0',
+        UseNat_bool: true,
+        Mtu_u32: 1500,
+        NatTcpTimeout_u32: 1800,
+        NatUdpTimeout_u32: 60,
+        UseDhcp_bool: true,
+        DhcpLeaseIPStart_ip: '192.168.30.10',
+        DhcpLeaseIPEnd_ip: '192.168.30.200',
+        DhcpSubnetMask_ip: '255.255.255.0',
+        DhcpExpireTimeSpan_u32: 7200,
+        DhcpGatewayAddress_ip: '192.168.30.1',
+        DhcpDnsServerAddress_ip: '8.8.8.8',
+        DhcpDnsServerAddress2_ip: '8.8.4.4',
+        DhcpDomainName_str: 'local',
+        SaveLog_bool: false,
+        ApplyDhcpPushRoutes_bool: false,
+        DhcpPushRoutes_str: ''
+      }
+
+      // Validate and merge provided options with defaults
       const params = {
         RpcHubName_str: hubName,
+        ...defaultOptions,
         ...options
+      }
+
+      // Type checking and validation
+      const validateIpAddress = (ip) => {
+        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/
+        return ipRegex.test(ip)
+      }
+
+      // Validate IP addresses
+      const ipFields = [
+        'Ip_ip', 'Mask_ip', 'DhcpLeaseIPStart_ip', 'DhcpLeaseIPEnd_ip',
+        'DhcpSubnetMask_ip', 'DhcpGatewayAddress_ip', 'DhcpDnsServerAddress_ip',
+        'DhcpDnsServerAddress2_ip'
+      ]
+
+      for (const field of ipFields) {
+        if (params[field] && !validateIpAddress(params[field])) {
+          throw new Error(`Invalid IP address format for ${field}: ${params[field]}`)
+        }
+      }
+
+      // Validate numeric fields
+      const numericFields = ['Mtu_u32', 'NatTcpTimeout_u32', 'NatUdpTimeout_u32', 'DhcpExpireTimeSpan_u32']
+      for (const field of numericFields) {
+        if (typeof params[field] !== 'number' || params[field] < 0) {
+          throw new Error(`Invalid numeric value for ${field}: ${params[field]}`)
+        }
+      }
+
+      // Validate boolean fields
+      const booleanFields = ['UseNat_bool', 'UseDhcp_bool', 'SaveLog_bool', 'ApplyDhcpPushRoutes_bool']
+      for (const field of booleanFields) {
+        params[field] = Boolean(params[field])
+      }
+
+      // Validate DHCP push routes format if enabled
+      if (params.ApplyDhcpPushRoutes_bool && params.DhcpPushRoutes_str) {
+        const routes = params.DhcpPushRoutes_str.split(/[,\s]+/)
+        for (const route of routes) {
+          const [network, mask, gateway] = route.split('/')
+          if (!validateIpAddress(network) || !validateIpAddress(mask) || !validateIpAddress(gateway)) {
+            throw new Error(`Invalid route format in DhcpPushRoutes_str: ${route}. Expected format: "network/mask/gateway"`)
+          }
+        }
       }
 
       const result = await this.makeRequest('SetSecureNATOption', params)

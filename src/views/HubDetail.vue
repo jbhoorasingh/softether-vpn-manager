@@ -23,6 +23,13 @@
         <button class="close-button" @click="error = null">&times;</button>
       </div>
 
+      <!-- Success Alert -->
+      <div v-if="successMessage" class="success-alert">
+        <i class="fas fa-check-circle"></i>
+        <span>{{ successMessage }}</span>
+        <button class="close-button" @click="successMessage = null">&times;</button>
+      </div>
+
       <!-- Hub Details Summary -->
       <div class="hub-summary">
         <div class="summary-grid">
@@ -330,6 +337,35 @@
               </div>
             </div>
 
+            <!-- DHCP Push Routes Settings -->
+            <div class="settings-section" v-if="secureNatOptions.UseDhcp_bool">
+              <h3>DHCP Push Routes</h3>
+              <div class="form-description">
+                <p>Configure static routes to push to DHCP clients. Format: "network/mask/gateway"</p>
+                <p>Example: 192.168.5.0/255.255.255.0/192.168.4.254</p>
+              </div>
+              <div class="form-grid">
+                <div class="form-group checkbox">
+                  <label>
+                    <input type="checkbox" v-model="secureNatOptions.ApplyDhcpPushRoutes_bool">
+                    Enable DHCP Push Routes
+                  </label>
+                </div>
+                <div class="form-group" v-if="secureNatOptions.ApplyDhcpPushRoutes_bool">
+                  <label>Push Routes</label>
+                  <textarea 
+                    v-model="secureNatOptions.DhcpPushRoutes_str" 
+                    placeholder="192.168.5.0/255.255.255.0/192.168.4.254, 10.0.0.0/255.0.0.0/192.168.4.253"
+                    rows="4"
+                    class="form-textarea"
+                  ></textarea>
+                  <div class="form-help">
+                    Separate multiple routes with commas. Maximum 64 entries.
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="form-actions">
               <button type="submit" class="action-button primary" :disabled="isLoading">
                 <i class="fas fa-save"></i>
@@ -440,6 +476,7 @@ const hubName = route.params.hubName
 
 const isLoading = ref(false)
 const error = ref(null)
+const successMessage = ref(null)
 const activeTab = ref('users')
 const users = ref([])
 const sessions = ref([])
@@ -589,13 +626,25 @@ const toggleSecureNAT = async () => {
 
 const saveSecureNATOptions = async () => {
   try {
+    isLoading.value = true
+    error.value = null
+    successMessage.value = null
+
+    // Use the actual form values from secureNatOptions.value
     const result = await auth.getApi().setSecureNATOptions(hubName, secureNatOptions.value)
+
     if (result.success) {
-      // Show success message or notification
-      console.log('SecureNAT settings saved successfully')
+      successMessage.value = 'SecureNAT settings saved successfully'
+      // Refresh the SecureNAT status to get the latest settings
+      await refreshSecureNATStatus()
+    } else {
+      error.value = result.error
     }
-  } catch (error) {
-    console.error('Error saving SecureNAT options:', error)
+  } catch (err) {
+    error.value = err.message
+    console.error('Error saving SecureNAT options:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -809,6 +858,18 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
+.success-alert {
+  background-color: #f0fff4;
+  border: 1px solid #9ae6b4;
+  color: #2f855a;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .actions {
   display: flex;
   gap: 1rem;
@@ -980,23 +1041,39 @@ onMounted(() => {
 }
 
 .form-group input[type="text"],
-.form-group input[type="number"] {
+.form-group input[type="number"],
+.form-group .form-textarea {
   padding: 0.5rem;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
   font-size: 0.875rem;
 }
 
+.form-textarea {
+  width: 100%;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.form-description {
+  margin-bottom: 1rem;
+  color: #718096;
+  font-size: 0.875rem;
+}
+
+.form-description p {
+  margin: 0.25rem 0;
+}
+
+.form-help {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #718096;
+}
+
 .form-group.checkbox {
   flex-direction: row;
   align-items: center;
-}
-
-.form-group.checkbox label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
 }
 
 .form-actions {
