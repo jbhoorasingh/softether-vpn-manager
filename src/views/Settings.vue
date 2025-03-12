@@ -18,71 +18,160 @@
         <button class="close-button" @click="error = null">&times;</button>
       </div>
 
-      <!-- Special Listeners -->
-      <div class="settings-section">
-        <h2>Special Listeners</h2>
-        <div class="special-listeners card">
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input 
-                type="checkbox" 
-                v-model="specialListeners.VpnOverIcmpListener_bool"
-                @change="saveSpecialListeners"
-              >
-              VPN over ICMP
-            </label>
-            <span class="help-text">Enable VPN over ICMP protocol</span>
+      <!-- Success Alert -->
+      <div v-if="successMessage" class="success-alert">
+        <i class="fas fa-check-circle"></i>
+        <span>{{ successMessage }}</span>
+        <button class="close-button" @click="successMessage = null">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'listeners' }"
+          @click="activeTab = 'listeners'"
+        >
+          Listeners
+        </button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'syslog' }"
+          @click="activeTab = 'syslog'"
+        >
+          Syslog
+        </button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'advanced' }"
+          @click="activeTab = 'advanced'"
+        >
+          Advanced
+        </button>
+      </div>
+
+      <!-- Listeners Tab -->
+      <div v-if="activeTab === 'listeners'" class="tab-content">
+        <!-- Special Listeners -->
+        <div class="settings-section">
+          <h2>Special Listeners</h2>
+          <div class="special-listeners card">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  v-model="specialListeners.VpnOverIcmpListener_bool"
+                  @change="saveSpecialListeners"
+                >
+                VPN over ICMP
+              </label>
+              <span class="help-text">Enable VPN over ICMP protocol</span>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  v-model="specialListeners.VpnOverDnsListener_bool"
+                  @change="saveSpecialListeners"
+                >
+                VPN over DNS
+              </label>
+              <span class="help-text">Enable VPN over DNS protocol</span>
+            </div>
           </div>
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input 
-                type="checkbox" 
-                v-model="specialListeners.VpnOverDnsListener_bool"
-                @change="saveSpecialListeners"
-              >
-              VPN over DNS
-            </label>
-            <span class="help-text">Enable VPN over DNS protocol</span>
+        </div>
+
+        <!-- Standard Listeners -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h2>TCP Listeners</h2>
+            <button class="action-button primary" @click="showNewListenerModal = true">
+              <i class="fas fa-plus"></i>
+              Add Listener
+            </button>
+          </div>
+          
+          <div class="listeners-grid">
+            <div v-for="listener in listeners" :key="listener.Ports_u32" class="listener-card">
+              <div class="listener-header">
+                <h3>Port {{ listener.Ports_u32 }}</h3>
+                <div class="listener-actions">
+                  <button 
+                    class="icon-button"
+                    :class="{ 'success': listener.Enables_bool }"
+                    @click="toggleListener(listener)"
+                    :title="listener.Enables_bool ? 'Disable' : 'Enable'"
+                  >
+                    <i class="fas" :class="listener.Enables_bool ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
+                  </button>
+                  <button 
+                    class="icon-button danger"
+                    @click="deleteListener(listener)"
+                    title="Delete"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="listener-status" :class="{ 'error': listener.Errors_bool }">
+                <i class="fas" :class="listener.Errors_bool ? 'fa-exclamation-circle' : 'fa-check-circle'"></i>
+                {{ listener.Errors_bool ? 'Error' : 'OK' }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Standard Listeners -->
-      <div class="settings-section">
-        <div class="section-header">
-          <h2>TCP Listeners</h2>
-          <button class="action-button primary" @click="showNewListenerModal = true">
-            <i class="fas fa-plus"></i>
-            Add Listener
-          </button>
+      <!-- Syslog Tab -->
+      <div v-if="activeTab === 'syslog'" class="tab-content">
+        <div class="settings-section">
+          <h2>Syslog Configuration</h2>
+          <div class="syslog-config card">
+            <div class="form-group">
+              <label>Syslog Mode</label>
+              <select v-model="syslogSettings.SaveType_u32" @change="saveSyslogSettings">
+                <option :value="0">Disabled (Do not use syslog)</option>
+                <option :value="1">Server Log Only</option>
+                <option :value="2">Server and Virtual HUB Security Log</option>
+                <option :value="3">All Logs (Server, Security, and Packet)</option>
+              </select>
+            </div>
+            
+            <div class="form-group" :class="{ 'disabled': syslogSettings.SaveType_u32 === 0 }">
+              <label>Syslog Server Hostname</label>
+              <input 
+                type="text" 
+                v-model="syslogSettings.Hostname_str"
+                :disabled="syslogSettings.SaveType_u32 === 0"
+                placeholder="Enter hostname or IP address"
+                @change="saveSyslogSettings"
+              >
+              <span class="help-text">Hostname or IP address of the syslog server</span>
+            </div>
+            
+            <div class="form-group" :class="{ 'disabled': syslogSettings.SaveType_u32 === 0 }">
+              <label>Syslog Server Port</label>
+              <input 
+                type="number" 
+                v-model.number="syslogSettings.Port_u32"
+                :disabled="syslogSettings.SaveType_u32 === 0"
+                min="1"
+                max="65535"
+                placeholder="514"
+                @change="saveSyslogSettings"
+              >
+              <span class="help-text">Port number of the syslog server (default: 514)</span>
+            </div>
+          </div>
         </div>
-        
-        <div class="listeners-grid">
-          <div v-for="listener in listeners" :key="listener.Ports_u32" class="listener-card">
-            <div class="listener-header">
-              <h3>Port {{ listener.Ports_u32 }}</h3>
-              <div class="listener-actions">
-                <button 
-                  class="icon-button"
-                  :class="{ 'success': listener.Enables_bool }"
-                  @click="toggleListener(listener)"
-                  :title="listener.Enables_bool ? 'Disable' : 'Enable'"
-                >
-                  <i class="fas" :class="listener.Enables_bool ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
-                </button>
-                <button 
-                  class="icon-button danger"
-                  @click="deleteListener(listener)"
-                  title="Delete"
-                >
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-            <div class="listener-status" :class="{ 'error': listener.Errors_bool }">
-              <i class="fas" :class="listener.Errors_bool ? 'fa-exclamation-circle' : 'fa-check-circle'"></i>
-              {{ listener.Errors_bool ? 'Error' : 'OK' }}
-            </div>
+      </div>
+
+      <!-- Advanced Tab -->
+      <div v-if="activeTab === 'advanced'" class="tab-content">
+        <div class="settings-section">
+          <h2>Advanced Settings</h2>
+          <div class="card">
+            <p class="placeholder-text">Advanced settings will be added in a future update.</p>
           </div>
         </div>
       </div>
@@ -124,19 +213,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AppLayout from '../components/AppLayout.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const isLoading = ref(false)
 const error = ref(null)
+const successMessage = ref(null)
 const showNewListenerModal = ref(false)
 const showAllCapabilities = ref(false)
+const activeTab = ref('listeners')
 
 const specialListeners = ref({
   VpnOverIcmpListener_bool: false,
   VpnOverDnsListener_bool: false
+})
+
+const syslogSettings = ref({
+  SaveType_u32: 0,
+  Hostname_str: '',
+  Port_u32: 514
 })
 
 const listeners = ref([])
@@ -174,6 +271,7 @@ const refreshData = async () => {
   
   isLoading.value = true
   error.value = null
+  successMessage.value = null
   
   try {
     // Get server capabilities
@@ -192,6 +290,18 @@ const refreshData = async () => {
       error.value = specialResult.error
     }
 
+    // Get syslog settings
+    console.log('Fetching syslog settings...')
+    const syslogResult = await auth.getApi().getSysLog()
+    console.log('Syslog API response:', syslogResult)
+    if (syslogResult.success) {
+      syslogSettings.value = syslogResult.settings
+      console.log('Updated syslog settings:', syslogSettings.value)
+    } else if (!error.value) {
+      console.error('Error fetching syslog settings:', syslogResult.error)
+      error.value = syslogResult.error
+    }
+
     // Get standard listeners
     const listenersResult = await auth.getApi().enumListener()
     if (listenersResult.success) {
@@ -200,6 +310,7 @@ const refreshData = async () => {
       error.value = listenersResult.error
     }
   } catch (err) {
+    console.error('Error in refreshData:', err)
     error.value = err.message
   } finally {
     isLoading.value = false
@@ -208,45 +319,89 @@ const refreshData = async () => {
 
 const saveSpecialListeners = async () => {
   try {
+    isLoading.value = true
+    error.value = null
+    successMessage.value = null
+    
     const result = await auth.getApi().setSpecialListener(specialListeners.value)
-    if (!result.success) {
+    if (result.success) {
+      successMessage.value = 'Special listeners settings saved successfully'
+    } else {
       error.value = result.error
     }
   } catch (err) {
     error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const saveSyslogSettings = async () => {
+  try {
+    isLoading.value = true
+    error.value = null
+    successMessage.value = null
+    
+    // Ensure port is a number
+    syslogSettings.value.Port_u32 = Number(syslogSettings.value.Port_u32) || 0
+    
+    const result = await auth.getApi().setSysLog(syslogSettings.value)
+    if (result.success) {
+      successMessage.value = 'Syslog settings saved successfully'
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
   }
 }
 
 const createNewListener = async () => {
   try {
+    isLoading.value = true
+    error.value = null
+    successMessage.value = null
+    
     const result = await auth.getApi().createListener(
       newListener.value.port,
       newListener.value.enabled
     )
     if (result.success) {
       showNewListenerModal.value = false
+      successMessage.value = `Listener on port ${newListener.value.port} created successfully`
       refreshData()
     } else {
       error.value = result.error
     }
   } catch (err) {
     error.value = err.message
+  } finally {
+    isLoading.value = false
   }
 }
 
 const toggleListener = async (listener) => {
   try {
+    isLoading.value = true
+    error.value = null
+    successMessage.value = null
+    
     const result = await auth.getApi().enableListener(
       listener.Ports_u32,
       !listener.Enables_bool
     )
     if (result.success) {
+      successMessage.value = `Listener on port ${listener.Ports_u32} ${!listener.Enables_bool ? 'enabled' : 'disabled'} successfully`
       refreshData()
     } else {
       error.value = result.error
     }
   } catch (err) {
     error.value = err.message
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -256,16 +411,28 @@ const deleteListener = async (listener) => {
   }
 
   try {
+    isLoading.value = true
+    error.value = null
+    successMessage.value = null
+    
     const result = await auth.getApi().deleteListener(listener.Ports_u32)
     if (result.success) {
+      successMessage.value = `Listener on port ${listener.Ports_u32} deleted successfully`
       refreshData()
     } else {
       error.value = result.error
     }
   } catch (err) {
     error.value = err.message
+  } finally {
+    isLoading.value = false
   }
 }
+
+// Watch for tab changes to refresh data when switching tabs
+watch(activeTab, (newTab) => {
+  // You can add specific refresh logic for each tab if needed
+})
 
 onMounted(() => {
   refreshData()
@@ -289,6 +456,32 @@ onMounted(() => {
   font-weight: 600;
   color: #1a202c;
   margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: none;
+  color: #4a5568;
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+  color: #1a202c;
+  border-bottom-color: #1a202c;
+}
+
+.tab-content {
+  margin-top: 1.5rem;
 }
 
 .settings-section {
@@ -316,12 +509,34 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.special-listeners {
+.special-listeners, .syslog-config {
   max-width: 600px;
 }
 
 .form-group {
   margin-bottom: 1rem;
+}
+
+.form-group.disabled {
+  opacity: 0.6;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.form-group select, 
+.form-group input[type="text"],
+.form-group input[type="number"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: white;
 }
 
 .checkbox-label {
@@ -335,7 +550,7 @@ onMounted(() => {
 
 .help-text {
   display: block;
-  margin-left: 1.5rem;
+  margin-top: 0.25rem;
   font-size: 0.875rem;
   color: #718096;
 }
@@ -453,21 +668,6 @@ onMounted(() => {
   gap: 1rem;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #2d3748;
-}
-
-.form-group input[type="number"] {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -529,61 +729,20 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
-.capabilities-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.capability-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.capability-header {
+.success-alert {
+  background-color: #f0fff4;
+  border: 1px solid #9ae6b4;
+  color: #2f855a;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
 }
 
-.capability-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  color: #2d3748;
-  font-weight: 500;
-}
-
-.capability-value {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  background-color: #e2e8f0;
-  color: #4a5568;
-}
-
-.capability-value.enabled {
-  background-color: #9ae6b4;
-  color: #22543d;
-}
-
-.capability-description {
-  font-size: 0.875rem;
+.placeholder-text {
   color: #718096;
-  margin: 0.5rem 0;
-}
-
-.capability-details {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-.detail-value {
-  font-size: 0.875rem;
-  color: #4a5568;
+  font-style: italic;
 }
 </style> 

@@ -543,6 +543,60 @@ export class VPNApi {
     }
   }
 
+  /**
+   * Get syslog configuration settings
+   * @returns {Promise<Object>} Result object with success status and syslog settings
+   */
+  async getSysLog() {
+    try {
+      console.log('Calling GetSysLog API...')
+      const result = await this.makeRequest('GetSysLog')
+      console.log('GetSysLog API response:', result)
+      return {
+        success: true,
+        settings: result.result
+      }
+    } catch (error) {
+      console.error('Error getting syslog settings:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  /**
+   * Configure syslog settings
+   * @param {Object} settings - Syslog settings
+   * @param {number} settings.SaveType_u32 - The behavior of the syslog function (0: Disabled, 1: Server log, 2: Server and Hub security log, 3: All logs)
+   * @param {string} settings.Hostname_str - Host name or IP address of the syslog server
+   * @param {number} settings.Port_u32 - Port number of the syslog server
+   * @returns {Promise<Object>} Result object with success status
+   */
+  async setSysLog(settings) {
+    try {
+      const params = {
+        SaveType_u32: Number(settings.SaveType_u32 || 0),
+        Hostname_str: String(settings.Hostname_str || ''),
+        Port_u32: Number(settings.Port_u32 || 0)
+      }
+      
+      console.log('Calling SetSysLog API with params:', params)
+      const result = await this.makeRequest('SetSysLog', params)
+      console.log('SetSysLog API response:', result)
+      return {
+        success: true,
+        settings: result.result
+      }
+    } catch (error) {
+      console.error('Error setting syslog settings:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
   async readLogFile(filePath, offset = 0) {
     try {
       const result = await this.makeRequest('ReadLogFile', {
