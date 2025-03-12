@@ -44,7 +44,7 @@
               <div class="log-file-info">
                 <div class="log-file-name">
                   <i class="fas fa-file-alt"></i>
-                  <span>{{ getFileName(log.FilePath_str) }}</span>
+                  <span>{{ log.FilePath_str }}</span>
                 </div>
                 <div class="log-file-details">
                   <span class="server-name">{{ log.ServerName_str }}</span>
@@ -62,7 +62,7 @@
         <div class="log-content-panel">
           <div class="panel-header" v-if="selectedLog">
             <div class="header-content">
-              <h2>{{ getFileName(selectedLog.FilePath_str) }}</h2>
+              <h2>{{ selectedLog.FilePath_str }}</h2>
               <div class="search-box">
                 <i class="fas fa-search"></i>
                 <input 
@@ -193,7 +193,7 @@ const downloadLog = async () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = getFileName(selectedLog.value.FilePath_str)
+      a.download = selectedLog.value.FilePath_str.replace(/\//g, '_') // Replace slashes with underscores for valid filename
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -420,6 +420,12 @@ onMounted(() => {
   gap: 0.5rem;
   font-weight: 500;
   color: #2d3748;
+  word-break: break-all;
+  font-size: 0.85rem;
+}
+
+.log-file-name i {
+  flex-shrink: 0;
 }
 
 .log-file-details {
@@ -560,5 +566,11 @@ onMounted(() => {
 :deep(.current-match) {
   background-color: rgba(246, 224, 94, 0.8);
   border-radius: 2px;
+}
+
+.header-content h2 {
+  word-break: break-all;
+  line-height: 1.4;
+  font-size: 1.1rem;
 }
 </style> 
