@@ -623,4 +623,69 @@ export class VPNApi {
       }
     }
   }
+
+  /**
+   * Get hub log settings
+   * @param {string} hubName - Target Virtual HUB name
+   * @returns {Promise<Object>} Result object with success status and log settings
+   */
+  async getHubLog(hubName) {
+    try {
+      const params = {
+        HubName_str: hubName
+      }
+      
+      console.log('Calling GetHubLog API with params:', params)
+      const result = await this.makeRequest('GetHubLog', params)
+      console.log('GetHubLog API response:', result)
+      return {
+        success: true,
+        settings: result.result
+      }
+    } catch (error) {
+      console.error('Error getting hub log settings:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  /**
+   * Set hub log settings
+   * @param {string} hubName - Target Virtual Hub name
+   * @param {Object} settings - Log settings
+   * @param {boolean} settings.SaveSecurityLog_bool - Enable/disable security log
+   * @param {number} settings.SecurityLogSwitchType_u32 - Security log switching type (0-5)
+   * @param {boolean} settings.SavePacketLog_bool - Enable/disable packet log
+   * @param {number} settings.PacketLogSwitchType_u32 - Packet log switching type (0-5)
+   * @param {number[]} settings.PacketLogConfig_u32 - Packet log configuration array
+   * @returns {Promise<Object>} Result object with success status and settings
+   */
+  async setHubLog(hubName, settings) {
+    try {
+      const params = {
+        HubName_str: hubName,
+        SaveSecurityLog_bool: Boolean(settings.SaveSecurityLog_bool),
+        SecurityLogSwitchType_u32: Number(settings.SecurityLogSwitchType_u32),
+        SavePacketLog_bool: Boolean(settings.SavePacketLog_bool),
+        PacketLogSwitchType_u32: Number(settings.PacketLogSwitchType_u32),
+        PacketLogConfig_u32: settings.PacketLogConfig_u32.map(Number)
+      }
+
+      console.log('Calling SetHubLog API with params:', params)
+      const result = await this.makeRequest('SetHubLog', params)
+      console.log('SetHubLog API response:', result)
+      return {
+        success: true,
+        settings: result.result
+      }
+    } catch (error) {
+      console.error('Error setting hub log settings:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 

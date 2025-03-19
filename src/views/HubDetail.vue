@@ -152,6 +152,13 @@
         >
           DHCP Leases
         </button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'logs' }"
+          @click="activeTab = 'logs'"
+        >
+          Logging
+        </button>
       </div>
 
       <!-- Users Table -->
@@ -476,6 +483,86 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Logs Table -->
+      <div v-if="activeTab === 'logs'" class="table-container">
+        <div class="table-header">
+          <h2>Hub Log Settings</h2>
+          <button class="action-button primary" @click="saveHubLogSettings" :disabled="isLoading">
+            <i class="fas fa-save"></i>
+            Save Settings
+          </button>
+        </div>
+        
+        <div class="log-settings-container">
+          <div class="settings-section">
+            <h3>Security Log Settings</h3>
+            <div class="setting-item">
+              <div class="setting-label">Save Security Log:</div>
+              <div class="setting-value">
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="hubLogSettings.SaveSecurityLog_bool">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Security Log Format:</div>
+              <div class="setting-value">
+                <select v-model="hubLogSettings.SecurityLogSwitchType_u32">
+                  <option v-for="type in LOG_SWITCH_TYPES" 
+                          :key="type.value" 
+                          :value="type.value">
+                    {{ type.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Packet Log Settings</h3>
+            <div class="setting-item">
+              <div class="setting-label">Save Packet Log:</div>
+              <div class="setting-value">
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="hubLogSettings.SavePacketLog_bool">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="setting-item">
+              <div class="setting-label">Packet Log Format:</div>
+              <div class="setting-value">
+                <select v-model="hubLogSettings.PacketLogSwitchType_u32">
+                  <option v-for="type in LOG_SWITCH_TYPES" 
+                          :key="type.value" 
+                          :value="type.value">
+                    {{ type.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="setting-item packet-config">
+              <div class="setting-label">Packet Log Types:</div>
+              <div class="setting-value">
+                <div v-for="type in PACKET_LOG_TYPES" 
+                     :key="type.index" 
+                     class="packet-type-item">
+                  <label>{{ type.label }}:</label>
+                  <select v-model="hubLogSettings.PacketLogConfig_u32[type.index]">
+                    <option v-for="config in PACKET_LOG_CONFIG_VALUES" 
+                            :key="config.value" 
+                            :value="config.value">
+                      {{ config.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Column Selector Modal -->
@@ -596,6 +683,14 @@ const secureNatEnabled = ref(false)
 const dhcpLeases = ref([])
 const natSessions = ref([])
 
+const hubLogSettings = ref({
+  SaveSecurityLog_bool: false,
+  SecurityLogSwitchType_u32: 0,
+  SavePacketLog_bool: false,
+  PacketLogSwitchType_u32: 0,
+  PacketLogConfig_u32: []
+})
+
 const secureNatOptions = ref({
   Ip_ip: '192.168.30.1',
   Mask_ip: '255.255.255.0',
@@ -648,6 +743,13 @@ const refreshData = async () => {
             promises.push(refreshNATSessions())
           }
           return Promise.all(promises)
+        }
+      }),
+      auth.getApi().getHubLog(hubName).then(result => {
+        if (result.success) {
+          hubLogSettings.value = result.settings
+        } else if (!error.value) {
+          error.value = result.error
         }
       })
     ])
@@ -826,6 +928,65 @@ watch(activeTab, (newTab) => {
     refreshNATSessions()
   }
 })
+
+const getLogSwitchTypeDescription = (type) => {
+  switch (type) {
+    case 0: return 'No Save'
+    case 1: return 'Save Standard Format'
+    case 2: return 'Save CSV Format'
+    default: return `Unknown (${type})`
+  }
+}
+
+// Add these constants at the top of the script section
+const LOG_SWITCH_TYPES = [
+  { value: 0, label: 'No switching' },
+  { value: 1, label: 'Secondly basis' },
+  { value: 2, label: 'Minutely basis' },
+  { value: 3, label: 'Hourly basis' },
+  { value: 4, label: 'Daily basis' },
+  { value: 5, label: 'Monthly basis' }
+]
+
+const PACKET_LOG_TYPES = [
+  { index: 0, name: 'TcpConnection', label: 'TCP Connection' },
+  { index: 1, name: 'TcpAll', label: 'TCP All' },
+  { index: 2, name: 'DHCP', label: 'DHCP' },
+  { index: 3, name: 'UDP', label: 'UDP' },
+  { index: 4, name: 'ICMP', label: 'ICMP' },
+  { index: 5, name: 'IP', label: 'IP' },
+  { index: 6, name: 'ARP', label: 'ARP' },
+  { index: 7, name: 'Ethernet', label: 'Ethernet' }
+]
+
+const PACKET_LOG_CONFIG_VALUES = [
+  { value: 0, label: 'Not save' },
+  { value: 1, label: 'Only header' },
+  { value: 2, label: 'All payloads' }
+]
+
+// Add this method to handle saving the log settings
+const saveHubLogSettings = async () => {
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  error.value = null
+  successMessage.value = null
+  
+  try {
+    const result = await auth.getApi().setHubLog(hubName, hubLogSettings.value)
+    if (result.success) {
+      successMessage.value = 'Log settings saved successfully'
+      hubLogSettings.value = result.settings
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
 
 onMounted(() => {
   refreshData()
@@ -1287,5 +1448,136 @@ onMounted(() => {
 .traffic-item i {
   font-size: 0.75rem;
   color: #718096;
+}
+
+.log-settings-container {
+  padding: 1.5rem;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section h3 {
+  font-size: 1.125rem;
+  color: #2d3748;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.setting-item {
+  display: flex;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: #f7fafc;
+  border-radius: 4px;
+}
+
+.setting-label {
+  flex: 0 0 200px;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.setting-value {
+  flex: 1;
+  color: #2d3748;
+}
+
+.status-enabled {
+  color: #48bb78;
+  font-weight: 500;
+}
+
+.status-disabled {
+  color: #e53e3e;
+  font-weight: 500;
+}
+
+.packet-log-types {
+  font-family: monospace;
+  background-color: #edf2f7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #48bb78;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.packet-config .setting-value {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.packet-type-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.packet-type-item label {
+  min-width: 150px;
+  font-weight: 500;
+}
+
+select {
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: white;
+  color: #2d3748;
+  font-size: 0.875rem;
+  min-width: 200px;
+}
+
+select:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
 }
 </style> 
