@@ -1353,7 +1353,11 @@ onMounted(() => {
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-group:has(.form-textarea) {
+  grid-column: 1 / -1; /* Make textarea span full width in grid */
 }
 
 .form-group label {
@@ -1454,8 +1458,8 @@ onMounted(() => {
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 60px;
-  height: 34px;
+  width: 48px;
+  height: 28px;
 }
 
 .toggle-switch input {
@@ -1479,8 +1483,8 @@ onMounted(() => {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 26px;
-  width: 26px;
+  height: 20px;
+  width: 20px;
   left: 4px;
   bottom: 4px;
   background-color: white;
@@ -1493,7 +1497,7 @@ input:checked + .toggle-slider {
 }
 
 input:checked + .toggle-slider:before {
-  transform: translateX(26px);
+  transform: translateX(20px);
 }
 
 .packet-config .setting-value {
@@ -1514,13 +1518,13 @@ input:checked + .toggle-slider:before {
 }
 
 select {
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
   background-color: white;
   color: #2d3748;
   font-size: 0.875rem;
-  min-width: 200px;
+  height: 32px;
 }
 
 select:focus {
@@ -1531,28 +1535,28 @@ select:focus {
 
 /* Add these new styles */
 .settings-form {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .toggle-wrapper {
   display: flex;
   align-items: center;
-  height: 38px; /* Match height of select inputs */
+  height: 32px;
 }
 
 .packet-log-config {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .packet-log-config h4 {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: #4a5568;
   font-size: 1rem;
 }
@@ -1560,23 +1564,23 @@ select:focus {
 .packet-type-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: #4a5568;
   font-weight: 500;
 }
 
 .form-group select {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
   background-color: white;
@@ -1587,8 +1591,8 @@ select:focus {
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 60px;
-  height: 34px;
+  width: 48px;
+  height: 28px;
 }
 
 .toggle-slider {
@@ -1606,8 +1610,8 @@ select:focus {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 26px;
-  width: 26px;
+  height: 20px;
+  width: 20px;
   left: 4px;
   bottom: 4px;
   background-color: white;
@@ -1620,17 +1624,45 @@ input:checked + .toggle-slider {
 }
 
 input:checked + .toggle-slider:before {
-  transform: translateX(26px);
+  transform: translateX(20px);
 }
 
 .settings-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .settings-section h3 {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: #2d3748;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+/* Add/update these styles */
+.form-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: white;
+  color: #2d3748;
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.form-help {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #718096;
 }
 </style> 
