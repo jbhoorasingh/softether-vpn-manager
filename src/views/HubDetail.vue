@@ -33,44 +33,45 @@
       <!-- Hub Details Summary -->
       <div class="hub-summary">
         <div class="summary-grid">
+          <!-- Status Card -->
           <div class="summary-card">
             <div class="summary-header">
               <i class="fas fa-info-circle"></i>
               <span>Status</span>
             </div>
             <div class="summary-content">
-              <div class="status-indicator">
-                <span class="status-dot" :class="{ 'online': hubDetails?.Online_bool }"></span>
-                <span :class="{ 'text-success': hubDetails?.Online_bool }">
-                  {{ hubDetails?.Online_bool ? 'Online' : 'Offline' }}
+              <div class="status-line">
+                <span class="status-indicator">
+                  <span class="status-dot" :class="{ 'online': hubDetails?.Online_bool }"></span>
+                  <span :class="{ 'text-success': hubDetails?.Online_bool }">
+                    {{ hubDetails?.Online_bool ? 'Online' : 'Offline' }}
+                  </span>
                 </span>
+                <button 
+                  class="action-button"
+                  :class="hubDetails?.Online_bool ? 'danger' : 'success'"
+                  @click="confirmToggleOnline"
+                  :disabled="isLoading"
+                >
+                  <i class="fas" :class="hubDetails?.Online_bool ? 'fa-stop-circle' : 'fa-play-circle'"></i>
+                  {{ hubDetails?.Online_bool ? 'Take Offline' : 'Bring Online' }}
+                </button>
               </div>
             </div>
           </div>
 
+          <!-- Users & Groups Card -->
           <div class="summary-card">
             <div class="summary-header">
               <i class="fas fa-users"></i>
               <span>Users & Groups</span>
             </div>
             <div class="summary-content">
-              <div class="stat-grid">
-                <div class="stat-item">
-                  <span class="stat-label">Total Users</span>
-                  <span class="stat-value">{{ hubDetails?.NumUsers_u32 || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Active Users</span>
-                  <span class="stat-value">{{ hubDetails?.NumLogin_u32 || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Groups</span>
-                  <span class="stat-value">{{ hubDetails?.NumGroups_u32 || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">Sessions</span>
-                  <span class="stat-value">{{ hubDetails?.NumSessions_u32 || 0 }}</span>
-                </div>
+              <div class="stat-list">
+                <div class="stat-item">Total Users{{ hubDetails?.NumUsers_u32 || 0 }}</div>
+                <div class="stat-item">Active Users{{ hubDetails?.NumLogin_u32 || 0 }}</div>
+                <div class="stat-item">Groups{{ hubDetails?.NumGroups_u32 || 0 }}</div>
+                <div class="stat-item">Sessions{{ hubDetails?.NumSessions_u32 || 0 }}</div>
               </div>
             </div>
           </div>
@@ -261,28 +262,25 @@
 
         <div class="secure-nat-settings" v-if="secureNatEnabled">
           <form @submit.prevent="saveSecureNATOptions" class="settings-form">
-            <!-- Virtual NAT Settings -->
             <div class="settings-section">
               <h3>Virtual NAT Settings</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Virtual IP Address</label>
-                  <input type="text" v-model="secureNatOptions.Ip_ip" placeholder="192.168.30.1">
-                </div>
-                <div class="form-group">
-                  <label>Subnet Mask</label>
-                  <input type="text" v-model="secureNatOptions.Mask_ip" placeholder="255.255.255.0">
-                </div>
-                <div class="form-group">
-                  <label>MTU Value</label>
-                  <input type="number" v-model.number="secureNatOptions.Mtu_u32" placeholder="1500">
-                </div>
-                <div class="form-group checkbox">
-                  <label>
-                    <input type="checkbox" v-model="secureNatOptions.UseNat_bool">
-                    Enable Virtual NAT
-                  </label>
-                </div>
+              <div class="form-group">
+                <label>Virtual IP Address</label>
+                <input type="text" v-model="secureNatOptions.Ip_ip" placeholder="192.168.30.1">
+              </div>
+              <div class="form-group">
+                <label>Subnet Mask</label>
+                <input type="text" v-model="secureNatOptions.Mask_ip" placeholder="255.255.255.0">
+              </div>
+              <div class="form-group">
+                <label>MTU Value</label>
+                <input type="number" v-model.number="secureNatOptions.Mtu_u32" placeholder="1500">
+              </div>
+              <div class="form-group checkbox">
+                <label>
+                  <input type="checkbox" v-model="secureNatOptions.UseNat_bool">
+                  Enable Virtual NAT
+                </label>
               </div>
             </div>
 
@@ -494,21 +492,22 @@
           </button>
         </div>
         
-        <div class="log-settings-container">
+        <div class="settings-form">
+          <!-- Security Log Settings -->
           <div class="settings-section">
             <h3>Security Log Settings</h3>
-            <div class="setting-item">
-              <div class="setting-label">Save Security Log:</div>
-              <div class="setting-value">
-                <label class="toggle-switch">
-                  <input type="checkbox" v-model="hubLogSettings.SaveSecurityLog_bool">
-                  <span class="toggle-slider"></span>
-                </label>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Save Security Log</label>
+                <div class="toggle-wrapper">
+                  <label class="toggle-switch">
+                    <input type="checkbox" v-model="hubLogSettings.SaveSecurityLog_bool">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
               </div>
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">Security Log Format:</div>
-              <div class="setting-value">
+              <div class="form-group">
+                <label>Security Log Format</label>
                 <select v-model="hubLogSettings.SecurityLogSwitchType_u32">
                   <option v-for="type in LOG_SWITCH_TYPES" 
                           :key="type.value" 
@@ -520,20 +519,21 @@
             </div>
           </div>
 
+          <!-- Packet Log Settings -->
           <div class="settings-section">
             <h3>Packet Log Settings</h3>
-            <div class="setting-item">
-              <div class="setting-label">Save Packet Log:</div>
-              <div class="setting-value">
-                <label class="toggle-switch">
-                  <input type="checkbox" v-model="hubLogSettings.SavePacketLog_bool">
-                  <span class="toggle-slider"></span>
-                </label>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Save Packet Log</label>
+                <div class="toggle-wrapper">
+                  <label class="toggle-switch">
+                    <input type="checkbox" v-model="hubLogSettings.SavePacketLog_bool">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
               </div>
-            </div>
-            <div class="setting-item">
-              <div class="setting-label">Packet Log Format:</div>
-              <div class="setting-value">
+              <div class="form-group">
+                <label>Packet Log Format</label>
                 <select v-model="hubLogSettings.PacketLogSwitchType_u32">
                   <option v-for="type in LOG_SWITCH_TYPES" 
                           :key="type.value" 
@@ -543,13 +543,14 @@
                 </select>
               </div>
             </div>
-            <div class="setting-item packet-config">
-              <div class="setting-label">Packet Log Types:</div>
-              <div class="setting-value">
+
+            <div class="packet-log-config">
+              <h4>Packet Log Types</h4>
+              <div class="packet-type-grid">
                 <div v-for="type in PACKET_LOG_TYPES" 
                      :key="type.index" 
-                     class="packet-type-item">
-                  <label>{{ type.label }}:</label>
+                     class="form-group">
+                  <label>{{ type.label }}</label>
                   <select v-model="hubLogSettings.PacketLogConfig_u32[type.index]">
                     <option v-for="config in PACKET_LOG_CONFIG_VALUES" 
                             :key="config.value" 
@@ -616,6 +617,37 @@
         </div>
         <div class="details-content">
           <pre>{{ JSON.stringify(selectedItem, null, 2) }}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Online/Offline Confirmation Modal -->
+    <div v-if="showOnlineToggleModal" class="modal-overlay" @click="showOnlineToggleModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>Confirm Status Change</h2>
+          <button class="close-button" @click="showOnlineToggleModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="warning-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>
+              Are you sure you want to set the hub to {{ hubDetails?.Online_bool ? 'offline' : 'online' }}?<br>
+              {{ hubDetails?.Online_bool ? 'This will disconnect all active VPN sessions.' : 'This will allow new VPN connections.' }}
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="action-button" @click="showOnlineToggleModal = false">Cancel</button>
+          <button 
+            class="action-button"
+            :class="hubDetails?.Online_bool ? 'danger' : 'success'"
+            @click="toggleHubOnline"
+            :disabled="isLoading"
+          >
+            <i class="fas" :class="hubDetails?.Online_bool ? 'fa-stop-circle' : 'fa-play-circle'"></i>
+            {{ isLoading ? 'Processing...' : (hubDetails?.Online_bool ? 'Take Offline' : 'Bring Online') }}
+          </button>
         </div>
       </div>
     </div>
@@ -988,6 +1020,42 @@ const saveHubLogSettings = async () => {
   }
 }
 
+const showOnlineToggleModal = ref(false)
+
+const confirmToggleOnline = () => {
+  showOnlineToggleModal.value = true
+}
+
+const toggleHubOnline = async () => {
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  error.value = null
+  successMessage.value = null
+  
+  try {
+    const newStatus = !hubDetails.value?.Online_bool
+    const result = await auth.getApi().setHubOnline(hubName, newStatus)
+    
+    if (result.success) {
+      successMessage.value = `Hub successfully set to ${newStatus ? 'online' : 'offline'}`
+      showOnlineToggleModal.value = false
+      // Update the local hub details
+      if (hubDetails.value) {
+        hubDetails.value.Online_bool = newStatus
+      }
+      // Refresh data to get updated status
+      refreshData()
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
 onMounted(() => {
   refreshData()
 })
@@ -1217,12 +1285,13 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .summary-card {
   background: white;
   border-radius: 8px;
-  padding: 1rem;
+  padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -1230,15 +1299,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #4a5568;
-  font-weight: 500;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.summary-header i {
-  font-size: 0.875rem;
+.summary-content {
+  padding: 0.5rem 0;
+}
+
+.status-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .status-indicator {
@@ -1248,66 +1321,24 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #a0aec0;
-}
-
-.status-dot.online {
-  background-color: #48bb78;
-}
-
-.text-success {
-  color: #48bb78;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .stat-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #718096;
-}
-
-.stat-value {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #2d3748;
-}
-
-.timestamps {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.timestamp-item {
-  display: flex;
   justify-content: space-between;
-  font-size: 0.875rem;
+  align-items: center;
+  color: #4a5568;
 }
 
-.timestamp-label {
-  color: #718096;
-}
-
-.timestamp-value {
-  color: #2d3748;
-}
-
-.settings-form {
+/* SecureNAT Settings styles */
+.secure-nat-settings {
   padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
 }
 
 .settings-section {
@@ -1315,74 +1346,82 @@ onMounted(() => {
 }
 
 .settings-section h3 {
-  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
   color: #2d3748;
-  margin-bottom: 1rem;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  display: block;
+  margin-bottom: 0.5rem;
   color: #4a5568;
   font-weight: 500;
 }
 
 .form-group input[type="text"],
-.form-group input[type="number"],
-.form-group .form-textarea {
+.form-group input[type="number"] {
+  width: 100%;
   padding: 0.5rem;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
   font-size: 0.875rem;
 }
 
-.form-textarea {
-  width: 100%;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.form-description {
-  margin-bottom: 1rem;
-  color: #718096;
-  font-size: 0.875rem;
-}
-
-.form-description p {
-  margin: 0.25rem 0;
-}
-
-.form-help {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: #718096;
-}
-
 .form-group.checkbox {
-  flex-direction: row;
+  display: flex;
   align-items: center;
+  gap: 0.5rem;
 }
 
-.form-actions {
-  margin-top: 2rem;
+.form-group.checkbox label {
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.warning-message {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #fff5f5;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.warning-message i {
+  color: #c53030;
+  font-size: 1.5rem;
+}
+
+.warning-message p {
+  margin: 0;
+  color: #c53030;
+  line-height: 1.5;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
-.header-actions {
-  display: flex;
-  gap: 1rem;
+.action-button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .action-button.primary {
@@ -1392,97 +1431,6 @@ onMounted(() => {
 
 .action-button i {
   font-size: 1rem;
-}
-
-.action-button.success {
-  background-color: #48bb78;
-  color: white;
-  border: none;
-}
-
-.action-button.success:hover {
-  background-color: #38a169;
-}
-
-.dhcp-leases {
-  margin-top: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.dhcp-leases .table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.dhcp-leases .table-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  color: #2d3748;
-}
-
-.empty-state {
-  text-align: center;
-  color: #718096;
-  padding: 2rem !important;
-}
-
-.traffic-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.traffic-item {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.traffic-item i {
-  font-size: 0.75rem;
-  color: #718096;
-}
-
-.log-settings-container {
-  padding: 1.5rem;
-}
-
-.settings-section {
-  margin-bottom: 2rem;
-}
-
-.settings-section h3 {
-  font-size: 1.125rem;
-  color: #2d3748;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.setting-item {
-  display: flex;
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  background-color: #f7fafc;
-  border-radius: 4px;
-}
-
-.setting-label {
-  flex: 0 0 200px;
-  font-weight: 500;
-  color: #4a5568;
-}
-
-.setting-value {
-  flex: 1;
-  color: #2d3748;
 }
 
 .status-enabled {
@@ -1579,5 +1527,110 @@ select:focus {
   outline: none;
   border-color: #4299e1;
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* Add these new styles */
+.settings-form {
+  padding: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  height: 38px; /* Match height of select inputs */
+}
+
+.packet-log-config {
+  margin-top: 2rem;
+}
+
+.packet-log-config h4 {
+  margin-bottom: 1rem;
+  color: #4a5568;
+  font-size: 1rem;
+}
+
+.packet-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: white;
+  color: #2d3748;
+  font-size: 0.875rem;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #48bb78;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section h3 {
+  margin-bottom: 1.5rem;
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 </style> 

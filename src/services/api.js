@@ -710,4 +710,33 @@ export class VPNApi {
       }
     }
   }
+
+  /**
+   * Set hub online/offline status
+   * @param {string} hubName - The Virtual Hub name
+   * @param {boolean} online - Online/offline flag
+   * @returns {Promise<Object>} Result object with success status
+   */
+  async setHubOnline(hubName, online) {
+    try {
+      console.log('Calling SetHubOnline API...', { hubName, online })
+      const params = {
+        HubName_str: hubName,
+        Online_bool: online
+      }
+      
+      const result = await this.makeRequest('SetHubOnline', params)
+      console.log('SetHubOnline API response:', result)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error setting hub online status:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
