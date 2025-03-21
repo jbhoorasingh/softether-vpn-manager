@@ -169,9 +169,26 @@
       <!-- Advanced Tab -->
       <div v-if="activeTab === 'advanced'" class="tab-content">
         <div class="settings-section">
-          <h2>Advanced Settings</h2>
+          <h2>Server Management</h2>
           <div class="card">
-            <p class="placeholder-text">Advanced settings will be added in a future update.</p>
+            <div class="server-management">
+              <div class="management-item">
+                <div class="management-info">
+                  <h3>Restart VPN Server</h3>
+                  <p class="warning-text">
+                    Warning: This will disconnect all active VPN sessions. The server may take a few moments to restart.
+                  </p>
+                </div>
+                <button 
+                  class="action-button danger"
+                  @click="confirmReboot"
+                  :disabled="isLoading"
+                >
+                  <i class="fas fa-power-off"></i>
+                  Restart Server
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -209,6 +226,36 @@
         </form>
       </div>
     </div>
+
+    <!-- Reboot Confirmation Modal -->
+    <div v-if="showRebootModal" class="modal-overlay" @click="showRebootModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>Confirm Server Restart</h2>
+          <button class="close-button" @click="showRebootModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="warning-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>
+              Are you sure you want to restart the VPN server?<br>
+              This will disconnect all active VPN sessions.
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="action-button" @click="showRebootModal = false">Cancel</button>
+          <button 
+            class="action-button danger"
+            @click="rebootServer"
+            :disabled="isLoading"
+          >
+            <i class="fas fa-power-off"></i>
+            {{ isLoading ? 'Restarting...' : 'Restart Server' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -224,6 +271,7 @@ const successMessage = ref(null)
 const showNewListenerModal = ref(false)
 const showAllCapabilities = ref(false)
 const activeTab = ref('listeners')
+const showRebootModal = ref(false)
 
 const specialListeners = ref({
   VpnOverIcmpListener_bool: false,
@@ -419,6 +467,32 @@ const deleteListener = async (listener) => {
     if (result.success) {
       successMessage.value = `Listener on port ${listener.Ports_u32} deleted successfully`
       refreshData()
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const confirmReboot = () => {
+  showRebootModal.value = true
+}
+
+const rebootServer = async () => {
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  error.value = null
+  successMessage.value = null
+  
+  try {
+    const result = await auth.getApi().rebootServer()
+    if (result.success) {
+      successMessage.value = 'Server restart initiated successfully'
+      showRebootModal.value = false
     } else {
       error.value = result.error
     }
@@ -744,5 +818,73 @@ onMounted(() => {
 .placeholder-text {
   color: #718096;
   font-style: italic;
+}
+
+.server-management {
+  padding: 1rem;
+}
+
+.management-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 6px;
+}
+
+.management-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: #c53030;
+}
+
+.warning-text {
+  color: #c53030;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.action-button.danger {
+  background-color: #c53030;
+  color: white;
+  border: none;
+}
+
+.action-button.danger:hover {
+  background-color: #9b2c2c;
+}
+
+.warning-message {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #fff5f5;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.warning-message i {
+  color: #c53030;
+  font-size: 1.5rem;
+}
+
+.warning-message p {
+  margin: 0;
+  color: #c53030;
+  line-height: 1.5;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
+  padding: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 </style> 

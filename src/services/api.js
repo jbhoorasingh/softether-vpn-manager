@@ -688,4 +688,26 @@ export class VPNApi {
       }
     }
   }
+
+  /**
+   * Reboot the VPN server
+   * @returns {Promise<Object>} Result object with success status
+   */
+  async rebootServer() {
+    try {
+      console.log('Calling RebootServer API...')
+      const result = await this.makeRequest('RebootServer')
+      console.log('RebootServer API response:', result)
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error rebooting server:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
