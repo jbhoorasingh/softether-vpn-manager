@@ -739,4 +739,35 @@ export class VPNApi {
       }
     }
   }
+
+  /**
+   * Get hub message
+   * @param {string} hubName - Target Virtual Hub name
+   * @returns {Promise<Object>} Result object with success status and message
+   */
+  async getHubMsg(hubName) {
+    try {
+      console.log('Calling GetHubMsg API...')
+      const params = {
+        HubName_str: hubName
+      }
+      
+      const result = await this.makeRequest('GetHubMsg', params)
+      console.log('GetHubMsg API response:', result)
+      
+      // Decode the Base64 message
+      const message = result.result.Msg_bin ? atob(result.result.Msg_bin) : ''
+      
+      return {
+        success: true,
+        message: message
+      }
+    } catch (error) {
+      console.error('Error getting hub message:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 

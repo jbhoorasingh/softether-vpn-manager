@@ -114,6 +114,17 @@
         </div>
       </div>
 
+      <!-- Hub Message -->
+      <div class="message-card" v-if="hubMessage">
+        <div class="message-header">
+          <i class="fas fa-comment-alt"></i>
+          <span>Hub Message</span>
+        </div>
+        <div class="message-content">
+          {{ hubMessage }}
+        </div>
+      </div>
+
       <!-- Tabs -->
       <div class="tabs">
         <button 
@@ -744,6 +755,8 @@ const secureNatOptions = ref({
   DhcpPushRoutes_str: ''
 })
 
+const hubMessage = ref('')
+
 const refreshData = async () => {
   if (isLoading.value) return
   
@@ -780,6 +793,13 @@ const refreshData = async () => {
       auth.getApi().getHubLog(hubName).then(result => {
         if (result.success) {
           hubLogSettings.value = result.settings
+        } else if (!error.value) {
+          error.value = result.error
+        }
+      }),
+      auth.getApi().getHubMsg(hubName).then(result => {
+        if (result.success) {
+          hubMessage.value = result.message
         } else if (!error.value) {
           error.value = result.error
         }
@@ -1664,5 +1684,31 @@ input:checked + .toggle-slider:before {
   margin-top: 0.5rem;
   font-size: 0.875rem;
   color: #718096;
+}
+
+.message-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.message-content {
+  color: #4a5568;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style> 
