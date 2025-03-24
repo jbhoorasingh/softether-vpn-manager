@@ -770,4 +770,34 @@ export class VPNApi {
       }
     }
   }
+
+  /**
+   * Set hub message
+   * @param {string} hubName - Target Virtual Hub name
+   * @param {string} message - Message to set (will be converted to Base64)
+   * @returns {Promise<Object>} Result object with success status
+   */
+  async setHubMsg(hubName, message) {
+    try {
+      console.log('Calling SetHubMsg API...')
+      const params = {
+        HubName_str: hubName,
+        Msg_bin: btoa(message) // Convert message to Base64
+      }
+      
+      const result = await this.makeRequest('SetHubMsg', params)
+      console.log('SetHubMsg API response:', result)
+      
+      return {
+        success: true,
+        result: result.result
+      }
+    } catch (error) {
+      console.error('Error setting hub message:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
 } 
