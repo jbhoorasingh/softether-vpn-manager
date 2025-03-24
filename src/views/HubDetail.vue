@@ -34,10 +34,10 @@
       <div class="hub-summary">
         <div class="summary-grid">
           <!-- Status Card -->
-          <div class="summary-card">
+          <div class="summary-card status-card">
             <div class="summary-header">
               <i class="fas fa-info-circle"></i>
-              <span>Status</span>
+              <span>Status & Information</span>
             </div>
             <div class="summary-content">
               <div class="status-line">
@@ -56,6 +56,64 @@
                   <i class="fas" :class="hubDetails?.Online_bool ? 'fa-stop-circle' : 'fa-play-circle'"></i>
                   {{ hubDetails?.Online_bool ? 'Take Offline' : 'Bring Online' }}
                 </button>
+              </div>
+
+              <div class="info-section">
+                <div class="timestamp-list">
+                  <div class="timestamp-item">
+                    <span class="timestamp-label">Last Communication:</span>
+                    <span class="timestamp-value">{{ formatDate(hubDetails?.LastCommTime_dt) }}</span>
+                  </div>
+                  <div class="timestamp-item">
+                    <span class="timestamp-label">Created:</span>
+                    <span class="timestamp-value">{{ formatDate(hubDetails?.CreatedTime_dt) }}</span>
+                  </div>
+                </div>
+
+                <div class="message-section">
+                  <div class="message-header">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>Hub Message</span>
+                    <div class="message-actions">
+                      <button 
+                        v-if="!editingMessage" 
+                        class="action-button small"
+                        @click="startEditMessage"
+                      >
+                        <i class="fas fa-edit"></i>
+                        Edit
+                      </button>
+                      <template v-else>
+                        <button 
+                          class="action-button small primary"
+                          @click="saveMessage"
+                          :disabled="isLoading"
+                        >
+                          <i class="fas fa-save"></i>
+                          Save
+                        </button>
+                        <button 
+                          class="action-button small"
+                          @click="cancelEditMessage"
+                        >
+                          Cancel
+                        </button>
+                      </template>
+                    </div>
+                  </div>
+                  <div class="message-content">
+                    <textarea
+                      v-if="editingMessage"
+                      v-model="editedMessage"
+                      class="form-textarea"
+                      rows="3"
+                      placeholder="Enter hub message..."
+                    ></textarea>
+                    <div v-else class="message-text">
+                      {{ hubMessage || 'No message set' }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -91,23 +149,6 @@
                   <span class="stat-label">IP Entries</span>
                   <span class="stat-value">{{ hubDetails?.NumIpTables_u32 || 0 }}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="summary-card">
-            <div class="summary-header">
-              <i class="fas fa-clock"></i>
-              <span>Timestamps</span>
-            </div>
-            <div class="summary-content timestamps">
-              <div class="timestamp-item">
-                <span class="timestamp-label">Last Communication:</span>
-                <span class="timestamp-value">{{ formatDate(hubDetails?.LastCommTime_dt) }}</span>
-              </div>
-              <div class="timestamp-item">
-                <span class="timestamp-label">Created:</span>
-                <span class="timestamp-value">{{ formatDate(hubDetails?.CreatedTime_dt) }}</span>
               </div>
             </div>
           </div>
@@ -744,6 +785,12 @@ const secureNatOptions = ref({
   DhcpPushRoutes_str: ''
 })
 
+const hubMessage = ref('')
+
+// Add these with other refs
+const editingMessage = ref(false)
+const editedMessage = ref('')
+
 const refreshData = async () => {
   if (isLoading.value) return
   
@@ -780,6 +827,13 @@ const refreshData = async () => {
       auth.getApi().getHubLog(hubName).then(result => {
         if (result.success) {
           hubLogSettings.value = result.settings
+        } else if (!error.value) {
+          error.value = result.error
+        }
+      }),
+      auth.getApi().getHubMsg(hubName).then(result => {
+        if (result.success) {
+          hubMessage.value = result.message
         } else if (!error.value) {
           error.value = result.error
         }
@@ -1046,6 +1100,40 @@ const toggleHubOnline = async () => {
       }
       // Refresh data to get updated status
       refreshData()
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Add these new methods
+const startEditMessage = () => {
+  editedMessage.value = hubMessage.value
+  editingMessage.value = true
+}
+
+const cancelEditMessage = () => {
+  editedMessage.value = ''
+  editingMessage.value = false
+}
+
+const saveMessage = async () => {
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  error.value = null
+  successMessage.value = null
+  
+  try {
+    const result = await auth.getApi().setHubMsg(hubName, editedMessage.value)
+    if (result.success) {
+      hubMessage.value = editedMessage.value
+      successMessage.value = 'Hub message updated successfully'
+      editingMessage.value = false
     } else {
       error.value = result.error
     }
@@ -1664,5 +1752,104 @@ input:checked + .toggle-slider:before {
   margin-top: 0.5rem;
   font-size: 0.875rem;
   color: #718096;
+}
+
+.message-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.message-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.message-content {
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.message-content .form-textarea {
+  margin-top: 0.5rem;
+}
+
+.status-card {
+  grid-column: span 2; /* Make status card take up 2 columns */
+}
+
+.info-section {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timestamp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.timestamp-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #4a5568;
+  font-size: 0.875rem;
+}
+
+.message-section {
+  margin-top: 0.5rem;
+}
+
+.message-section .message-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.message-section .message-content {
+  padding: 0.5rem 0;
+}
+
+.message-text {
+  color: #4a5568;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.action-button.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Update form-textarea for message editing */
+.message-section .form-textarea {
+  font-size: 0.875rem;
+  min-height: 60px;
+  margin: 0;
 }
 </style> 
