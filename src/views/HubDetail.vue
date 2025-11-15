@@ -1308,17 +1308,6 @@ const loadIpTable = async () => {
   }
 }
 
-const formatMacAddress = (macBin) => {
-  if (!macBin) return '-'
-  try {
-    // Decode base64 MAC address and format as XX:XX:XX:XX:XX:XX
-    const bytes = atob(macBin).split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
-    return bytes.join(':').toUpperCase()
-  } catch (e) {
-    return macBin
-  }
-}
-
 // Session Disconnect Functions
 const confirmDisconnectSession = (session) => {
   disconnectingSession.value = session
