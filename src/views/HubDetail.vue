@@ -194,12 +194,26 @@
         >
           DHCP Leases
         </button>
-        <button 
-          class="tab-button" 
+        <button
+          class="tab-button"
           :class="{ active: activeTab === 'logs' }"
           @click="activeTab = 'logs'"
         >
           Logging
+        </button>
+        <button
+          class="tab-button"
+          :class="{ active: activeTab === 'mactable' }"
+          @click="activeTab = 'mactable'"
+        >
+          MAC Table
+        </button>
+        <button
+          class="tab-button"
+          :class="{ active: activeTab === 'iptable' }"
+          @click="activeTab = 'iptable'"
+        >
+          IP Table
         </button>
       </div>
 
@@ -272,8 +286,11 @@
               <td v-if="sessionColumns.includes('remote')">{{ session.RemoteSession_bool ? 'Yes' : 'No' }}</td>
               <td v-if="sessionColumns.includes('remoteHost')">{{ session.RemoteHostname_str }}</td>
               <td>
-                <button class="icon-button" @click="showSessionDetails(session)">
+                <button class="icon-button" @click="showSessionDetails(session)" title="View Details">
                   <i class="fas fa-info-circle"></i>
+                </button>
+                <button class="icon-button danger" @click="confirmDisconnectSession(session)" title="Disconnect">
+                  <i class="fas fa-times-circle"></i>
                 </button>
               </td>
             </tr>
@@ -605,6 +622,78 @@
           </div>
         </div>
       </div>
+
+      <!-- MAC Address Table -->
+      <div v-if="activeTab === 'mactable'" class="table-container">
+        <div class="table-header">
+          <h2>MAC Address Table</h2>
+          <button class="action-button refresh" @click="loadMacTable" :disabled="isLoading">
+            <i class="fas fa-sync-alt" :class="{ 'rotating': isLoading }"></i>
+            Refresh
+          </button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Session Name</th>
+              <th>MAC Address</th>
+              <th>Created Time</th>
+              <th>Updated Time</th>
+              <th>Remote</th>
+              <th>VLan ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in macTable" :key="index">
+              <td>{{ entry.SessionName_str }}</td>
+              <td class="mono-text">{{ formatMacAddress(entry.MacAddress_bin) }}</td>
+              <td>{{ formatDate(entry.CreatedTime_dt) }}</td>
+              <td>{{ formatDate(entry.UpdatedTime_dt) }}</td>
+              <td>{{ entry.RemoteItem_bool ? 'Yes' : 'No' }}</td>
+              <td>{{ entry.VlanId_u32 }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="macTable.length === 0" class="empty-message">
+          No MAC addresses in table
+        </div>
+      </div>
+
+      <!-- IP Address Table -->
+      <div v-if="activeTab === 'iptable'" class="table-container">
+        <div class="table-header">
+          <h2>IP Address Table</h2>
+          <button class="action-button refresh" @click="loadIpTable" :disabled="isLoading">
+            <i class="fas fa-sync-alt" :class="{ 'rotating': isLoading }"></i>
+            Refresh
+          </button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Session Name</th>
+              <th>IP Address</th>
+              <th>DHCP Allocated</th>
+              <th>Created Time</th>
+              <th>Updated Time</th>
+              <th>Remote</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(entry, index) in ipTable" :key="index">
+              <td>{{ entry.SessionName_str }}</td>
+              <td class="mono-text">{{ entry.IpAddress_ip }}</td>
+              <td>{{ entry.DhcpAllocated_bool ? 'Yes' : 'No' }}</td>
+              <td>{{ formatDate(entry.CreatedTime_dt) }}</td>
+              <td>{{ formatDate(entry.UpdatedTime_dt) }}</td>
+              <td>{{ entry.RemoteItem_bool ? 'Yes' : 'No' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="ipTable.length === 0" class="empty-message">
+          No IP addresses in table
+        </div>
+      </div>
     </div>
 
     <!-- Column Selector Modal -->
@@ -692,6 +781,30 @@
         </div>
       </div>
     </div>
+
+    <!-- Disconnect Session Confirmation Modal -->
+    <div v-if="showDisconnectConfirm" class="modal-overlay" @click="showDisconnectConfirm = false">
+      <div class="modal-content small" @click.stop>
+        <div class="modal-header">
+          <h2>Confirm Disconnect</h2>
+          <button class="close-button" @click="showDisconnectConfirm = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to disconnect session <strong>{{ disconnectingSession?.Name_str }}</strong>?</p>
+          <p class="warning-text">User: {{ disconnectingSession?.Username_str }}</p>
+          <p class="warning-text">This action will immediately terminate the user's connection.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="action-button" @click="showDisconnectConfirm = false">
+            Cancel
+          </button>
+          <button class="action-button danger" @click="disconnectSession" :disabled="isLoading">
+            <i class="fas" :class="isLoading ? 'fa-spinner fa-spin' : 'fa-times-circle'"></i>
+            {{ isLoading ? 'Disconnecting...' : 'Disconnect' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -755,6 +868,12 @@ const hubDetails = ref(null)
 const secureNatEnabled = ref(false)
 const dhcpLeases = ref([])
 const natSessions = ref([])
+const macTable = ref([])
+const ipTable = ref([])
+
+// Disconnect session modal
+const showDisconnectConfirm = ref(false)
+const disconnectingSession = ref(null)
 
 const hubLogSettings = ref({
   SaveSecurityLog_bool: false,
@@ -1143,6 +1262,102 @@ const saveMessage = async () => {
     isLoading.value = false
   }
 }
+
+// MAC and IP Table Functions
+const loadMacTable = async () => {
+  if (isLoading.value) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const result = await auth.getApi().enumMacTable(hubName)
+    if (result.success) {
+      macTable.value = result.macTable || []
+    } else {
+      error.value = result.error
+      macTable.value = []
+    }
+  } catch (err) {
+    error.value = err.message
+    macTable.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const loadIpTable = async () => {
+  if (isLoading.value) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const result = await auth.getApi().enumIpTable(hubName)
+    if (result.success) {
+      ipTable.value = result.ipTable || []
+    } else {
+      error.value = result.error
+      ipTable.value = []
+    }
+  } catch (err) {
+    error.value = err.message
+    ipTable.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const formatMacAddress = (macBin) => {
+  if (!macBin) return '-'
+  try {
+    // Decode base64 MAC address and format as XX:XX:XX:XX:XX:XX
+    const bytes = atob(macBin).split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
+    return bytes.join(':').toUpperCase()
+  } catch (e) {
+    return macBin
+  }
+}
+
+// Session Disconnect Functions
+const confirmDisconnectSession = (session) => {
+  disconnectingSession.value = session
+  showDisconnectConfirm.value = true
+}
+
+const disconnectSession = async () => {
+  if (isLoading.value || !disconnectingSession.value) return
+
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const result = await auth.getApi().deleteSession(hubName, disconnectingSession.value.Name_str)
+    if (result.success) {
+      successMessage.value = `Session disconnected successfully`
+      showDisconnectConfirm.value = false
+      disconnectingSession.value = null
+      // Refresh sessions list
+      await refreshData()
+      setTimeout(() => { successMessage.value = null }, 3000)
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Watch for tab changes to load data
+watch(activeTab, (newTab) => {
+  if (newTab === 'mactable' && macTable.value.length === 0) {
+    loadMacTable()
+  } else if (newTab === 'iptable' && ipTable.value.length === 0) {
+    loadIpTable()
+  }
+})
 
 onMounted(() => {
   refreshData()
@@ -1851,5 +2066,38 @@ input:checked + .toggle-slider:before {
   font-size: 0.875rem;
   min-height: 60px;
   margin: 0;
+}
+
+/* MAC/IP Table Styles */
+.mono-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.875rem;
+  color: #2d3748;
+}
+
+.empty-message {
+  text-align: center;
+  padding: 2rem;
+  color: #718096;
+  font-size: 1rem;
+}
+
+.icon-button.danger {
+  color: #f56565;
+}
+
+.icon-button.danger:hover {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+.warning-text {
+  color: #f56565;
+  font-weight: 500;
+  margin: 0.5rem 0;
+}
+
+.modal-content.small {
+  max-width: 400px;
 }
 </style> 
